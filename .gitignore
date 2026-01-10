@@ -1,0 +1,65 @@
+# --- Dependencies (Thư viện) ---
+node_modules/
+/jspm_packages/
+/.pnp
+.pnp.js
+
+# --- Testing (Kiểm thử) ---
+/coverage
+.nyc_output
+
+# --- Production / Build (File đã build xong) ---
+/build
+/dist
+/out
+
+# --- Security / Environment Variables (BẢO MẬT - QUAN TRỌNG) ---
+# Không bao giờ up file chứa mật khẩu, API Key lên git
+.env
+.env.test
+.env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Logs (File nhật ký lỗi) ---
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# --- Runtime data ---
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# --- Caching (Bộ nhớ đệm) ---
+.npm
+/.eslintcache
+*.tsbuildinfo
+
+# --- Framework specific (Các framework phổ biến) ---
+# Next.js
+/.next/
+
+# Nuxt.js
+/.nuxt/
+
+# NestJS
+/dist/
+
+# Serverless directories
+.serverless/
+
+# --- IDE / Editor (Cấu hình riêng của trình soạn thảo) ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+.idea

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECURE GATEWAY /// AUTO-AUTH</title>
+    <style>
+        /* GIỮ NGUYÊN CSS CŨ CỦA BẠN, CHỈ THÊM/SỬA MỘT CHÚT */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #050505;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            display: flex; justify-content: center; align-items: center; overflow: hidden;
+            text-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
+        }
+        body::before { /* Hiệu ứng CRT */
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+        .terminal-window {
+            width: 600px; background: rgba(0, 20, 0, 0.9); border: 2px solid #0f0;
+            box-shadow: 0 0 20px #0f0; padding: 20px; position: relative; z-index: 10;
+        }
+        .header { border-bottom: 1px dashed #0f0; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; }
+        input[type="text"] {
+            width: 100%; background: #111; border: 1px solid #333; color: #777; /* Màu xám để thể hiện đã khóa */
+            padding: 15px; font-family: inherit; margin-bottom: 20px;
+        }
+        button {
+            width: 100%; padding: 15px; background: transparent; border: 1px solid #0f0;
+            color: #0f0; cursor: pointer; text-transform: uppercase; font-weight: bold; transition: 0.3s;
+        }
+        button:hover { background: #0f0; color: black; box-shadow: 0 0 30px #0f0; }
+        .console-log { background: #000; border: 1px solid #333; height: 150px; overflow-y: auto; padding: 10px; font-size: 0.8rem; color: #ccc; margin-top: 20px; }
+        .log-entry { margin-bottom: 5px; }
+        .log-success { color: #0f0; } .log-error { color: #f00; } .log-warn { color: yellow; }
+        .hidden { display: none; }
+        .key-display { font-size: 1.5rem; color: yellow; border: 2px dashed yellow; padding: 15px; margin-top: 20px; text-align: center; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-window">
+        <div class="header">
+            <h1>> AUTO_ID_SYSTEM</h1>
+            <span>● CONNECTED</span>
+        </div>
+
+        <div id="step1">
+            <p style="margin-bottom: 10px;">[IDENTIFICATION] :: TARGET HWID DETECTED</p>
+            <input type="text" id="hwidDisplay" readonly value="DETECTING..." style="cursor: not-allowed;">
+            <p id="statusText" class="blink">Waiting for signal...</p>
+        </div>
+
+        <div id="step2" class="hidden">
+            <p style="margin-bottom: 10px;">[ACTION REQUIRED] :: BYPASS SECURITY CHECK</p>
+            <button onclick="goToAd()">> EXECUTE_LINK_BYPASS</button>
+        </div>
+
+        <div id="step3" class="hidden">
+            <p style="margin-bottom: 10px;">[FINALIZING] :: VERIFY INTEGRITY</p>
+            <button onclick="verifyProcess()">> GENERATE_ACCESS_KEY</button>
+        </div>
+
+        <div id="keyArea" class="key-display hidden" onclick="copyKey()"></div>
+
+        <div class="console-log" id="consoleLog">
+            <div class="log-entry">> System initialized...</div>
+        </div>
+    </div>
+
+    <script>
+        const YOUR_LINKVERTISE_URL = "https://linkvertise.com/your-id/your-link"; 
+
+        function log(msg, type = 'normal') {
+            const logBox = document.getElementById('consoleLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            if(type === 'success') entry.classList.add('log-success');
+            if(type === 'error') entry.classList.add('log-error');
+            if(type === 'warn') entry.classList.add('log-warn');
+            entry.innerText = `> ${msg}`;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // TỰ ĐỘNG CHẠY KHI TRANG LOAD
+        window.onload = async function() {
+            // Lấy HWID từ URL (ví dụ: localhost:3000/?hwid=ABC-123)
+            const urlParams = new URLSearchParams(window.location.search);
+            const hwid = urlParams.get('hwid');
+
+            if (hwid) {
+                document.getElementById('hwidDisplay').value = hwid;
+                log("HWID Detected from URL Parameter.", "success");
+                log(`Target: ${hwid.substring(0, 15)}...`);
+                
+                // TỰ ĐỘNG GỌI API START LUÔN
+                await startProcess(hwid);
+            } else {
+                document.getElementById('hwidDisplay').value = "ERROR: HWID NOT FOUND IN LINK";
+                log("FATAL: Truy cập không hợp lệ. Hãy lấy link từ Script Roblox!", "error");
+                document.getElementById('statusText').innerText = "ACCESS DENIED";
+                document.getElementById('statusText').style.color = "red";
+            }
+        };
+
+        async function startProcess(hwid) {
+            log("Initiating session handshake...");
+            try {
+                const res = await fetch('/api/start-process', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ hwid })
+                });
+                const data = await res.json();
+
+                if(data.success) {
+                    localStorage.setItem('session_id', data.sessionId);
+                    log("Session confirmed via Server.", "success");
+                    
+                    // Chuyển bước
+                    setTimeout(() => {
+                        document.getElementById('step1').classList.add('hidden');
+                        document.getElementById('step2').classList.remove('hidden');
+                        log("Ready for Bypass. Waiting for user...", "warn");
+                    }, 1500); // Delay 1.5s cho ngầu
+                } else {
+                    log("Server Reject: " + data.error, "error");
+                }
+            } catch (err) {
+                log("Network Error. Is server online?", "error");
+            }
+        }
+
+        function goToAd() {
+            log("Redirecting to Ad Gateway...", "warn");
+            window.open(YOUR_LINKVERTISE_URL, '_blank');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.remove('hidden');
+        }
+
+        async function verifyProcess() {
+            const sessionId = localStorage.getItem('session_id');
+            if(!sessionId) return log("Session Lost. Reload page.", "error");
+
+            log("Verifying token timestamps...");
+            const res = await fetch('/api/complete-process', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ sessionId })
+            });
+            const data = await res.json();
+
+            if(data.success) {
+                log("AUTHENTICATION SUCCESSFUL.", "success");
+                document.getElementById('step3').classList.add('hidden');
+                
+                const keyArea = document.getElementById('keyArea');
+                keyArea.classList.remove('hidden');
+                keyArea.innerText = data.key;
+                
+                log("Key Generated. Click key to copy.", "warn");
+                localStorage.removeItem('session_id');
+            } else {
+                log("DENIED: " + data.error, "error");
+            }
+        }
+
+        function copyKey() {
+            const keyText = document.getElementById('keyArea').innerText;
+            navigator.clipboard.writeText(keyText);
+            alert("Key Copied: " + keyText);
+        }
+    </script>
+</body>
+</html>
