@@ -64,5 +64,5 @@ pids
 !.vscode/tasks.json
 .idea
 
-.package-lock.json
+package-lock.json
 yarn.lock
