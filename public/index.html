@@ -347,13 +347,27 @@
         }
 
         async function completeProcess() {
-            const res = await fetch(API_COMPLETE, {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
-            });
-            const data = await res.json();
-            if(data.success) {
-                window.location.hash = ""; await loadProfile();
-            } else { alert("VERIFICATION FAILED: " + data.error); window.location.hash = ""; }
+            try {
+                const res = await fetch(API_COMPLETE, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    // Thành công -> Xóa hash và load profile
+                    window.location.hash = ""; 
+                    await loadProfile();
+                } else {
+                    // --- ĐOẠN SỬA LỖI Ở ĐÂY ---
+                    // Nếu lỗi là do Session mất (do F5 lại), ta thử load profile luôn
+                    // Vì có thể user đã có Key rồi, chỉ là lỡ tay F5 thôi.
+                    console.log("Session lost, trying to reload profile...");
+                    window.location.hash = ""; // Xóa cái #completed đi
+                    await loadProfile(); 
+                }
+            } catch (e) { 
+                console.error(e);
+            }
         }
 
         function copyKey() {
