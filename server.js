@@ -1,137 +1,174 @@
 const express = require('express');
 const cors = require('cors');
-const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
+const crypto = require('crypto');
 const path = require('path');
-const crypto = require('crypto'); // Thêm thư viện mã hóa để tạo Key ngầu hơn
 
 const app = express();
 const PORT = 3000;
 
-// CẤU HÌNH BẢO MẬT
-const KEY_DURATION_HOURS = 24; // 1. Thời lượng Key: 24h
-const MIN_WATCH_TIME = 15; // Giây
-const ALLOWED_IP_CHANGE = false; // false = Bắt buộc cùng IP mới cho lấy key
+// === CONFIG ===
+const MONGO_URI = "mongodb+srv://diendan:OvxZ8P07XptJfStr@cluster0.0txxmi2.mongodb.net/?appName=Cluster0&retryWrites=true&w=majority"; 
+// 2. Cấu hình Linkvertise
+const YOUR_DOMAIN = "https://hairkey.onrender.com"; 
+const LINKVERTISE_USER_ID = "924538"; 
 
-app.set('trust proxy', true); // Để lấy đúng IP trên Render/Heroku
+// Kết nối DB
+mongoose.connect(MONGO_URI).then(() => console.log('✅ DB Connected'));
+
+// === DATABASE SCHEMAS ===
+
+// 1. Bảng USER (Lưu tài khoản vĩnh viễn theo HWID)
+const UserSchema = new mongoose.Schema({
+    hwid: { type: String, unique: true, required: true },
+    key: { type: String, default: null },
+    keyExpires: { type: Date, default: null },
+    ip: String,
+    totalKeysGenerated: { type: Number, default: 0 }, // Đếm số lần lấy key (Thống kê cho vui)
+    lastLogin: { type: Date, default: Date.now }
+});
+
+// 2. Bảng SESSION (Lưu phiên giao dịch tạm thời để ẩn HWID trên URL)
+const SessionSchema = new mongoose.Schema({
+    sessionId: String, // Cái này sẽ hiện trên URL (?id=...)
+    hwid: String,      // Map về HWID thật
+    secretToken: String,
+    verified: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now, expires: 600 } // Link sống 10 phút
+});
+
+const UserModel = mongoose.model('User', UserSchema);
+const SessionModel = mongoose.model('Session', SessionSchema);
+
+app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// DATABASE (Nên dùng MongoDB nếu muốn lưu vĩnh viễn, đây là RAM)
-const sessions = {}; 
-const keys = {};
-const rateLimit = {}; // Chống spam
+// ================= API LOGIC =================
 
-// Hàm lấy IP thật của người dùng
-function getClientIp(req) {
-    return (req.headers['x-forwarded-for'] || req.socket.remoteAddress).split(',')[0].trim();
-}
-
-// 1. API: Bắt đầu phiên (Start)
-app.post('/api/start-process', (req, res) => {
+// 1. HANDSHAKE (Script gọi): Đăng nhập/Đăng ký tự động
+app.post('/api/handshake', async (req, res) => {
     const { hwid } = req.body;
-    const ip = getClientIp(req);
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-    if (!hwid) return res.status(400).json({ error: "Thiếu HWID" });
+    if (!hwid) return res.json({ success: false });
 
-    // Chống Spam: Mỗi IP chỉ được request 1 lần mỗi 5 giây
-    if (rateLimit[ip] && Date.now() - rateLimit[ip] < 5000) {
-        return res.json({ success: false, error: "Thao tác quá nhanh. Chờ chút!" });
+    // Tự động tạo hoặc cập nhật User
+    let user = await UserModel.findOne({ hwid });
+    if (!user) {
+        user = await UserModel.create({ hwid, ip });
+        console.log(`[NEW USER] Created account for HWID: ${hwid}`);
+    } else {
+        user.lastLogin = Date.now();
+        user.ip = ip;
+        await user.save();
     }
-    rateLimit[ip] = Date.now();
 
-    // Tạo Session ID
-    const sessionId = uuidv4();
-    
-    sessions[sessionId] = {
-        hwid: hwid,
-        ip: ip, // 2. Lưu IP người bắt đầu
-        startTime: Date.now()
-    };
+    // Tạo Session tạm để giấu HWID
+    const sessionId = crypto.randomBytes(12).toString('hex');
+    const secretToken = crypto.randomBytes(16).toString('hex');
 
-    console.log(`[START] HWID: ${hwid} | IP: ${ip}`);
-    res.json({ success: true, sessionId: sessionId });
+    await SessionModel.create({ sessionId, hwid, secretToken });
+
+    // Trả về link sạch
+    res.json({ success: true, url: `${YOUR_DOMAIN}/?id=${sessionId}` });
 });
 
-// 2. API: Hoàn thành & Lấy Key (Verify)
-app.post('/api/complete-process', (req, res) => {
+// 2. GET PROFILE (Web gọi): Lấy thông tin tài khoản để hiển thị Dashboard
+app.post('/api/profile', async (req, res) => {
     const { sessionId } = req.body;
-    const currentIp = getClientIp(req);
     
-    const session = sessions[sessionId];
+    // Tìm session
+    const session = await SessionModel.findOne({ sessionId });
+    if (!session) return res.json({ success: false, error: "Session Invalid" });
 
-    // Check Session tồn tại
-    if (!session) {
-        return res.json({ success: false, error: "Session không tồn tại hoặc đã hết hạn." });
-    }
+    // Tìm User từ session
+    const user = await UserModel.findOne({ hwid: session.hwid });
+    if (!user) return res.json({ success: false, error: "User Not Found" });
 
-    // 3. SECURITY: Check IP (Chống share link)
-    if (!ALLOWED_IP_CHANGE && session.ip !== currentIp) {
-        delete sessions[sessionId]; // Phạt xóa session luôn
-        return res.json({ 
-            success: false, 
-            error: "IP Thay đổi! Không được nhờ người khác lấy Key hộ." 
-        });
-    }
-
-    // 4. SECURITY: Check Thời gian (Chống Bypass/Hack)
-    const timeTaken = (Date.now() - session.startTime) / 1000;
-    if (timeTaken < MIN_WATCH_TIME) {
-        delete sessions[sessionId]; // Phạt
-        return res.json({ 
-            success: false, 
-            error: `Bypass detected! Quá nhanh (${Math.floor(timeTaken)}s). Yêu cầu xem đủ ${MIN_WATCH_TIME}s.` 
-        });
-    }
-
-    // TẠO KEY (Format: HAIRKEY_RandomString)
-    // Dùng crypto để tạo chuỗi ngẫu nhiên khó đoán hơn UUID
-    const randomPart = crypto.randomBytes(8).toString('hex').toUpperCase();
-    const newKey = `HAIRKEY_${randomPart}`;
+    // Check trạng thái Key
+    let keyStatus = "NONE";
+    let timeLeft = 0;
     
-    const expiresAt = Date.now() + (KEY_DURATION_HOURS * 60 * 60 * 1000);
+    if (user.key && user.keyExpires > new Date()) {
+        keyStatus = "ACTIVE";
+        timeLeft = Math.floor((new Date(user.keyExpires) - new Date()) / 1000);
+    } else if (user.key && user.keyExpires <= new Date()) {
+        keyStatus = "EXPIRED";
+    }
 
-    // Lưu Key vào Database
-    keys[session.hwid] = {
-        key: newKey,
-        expires: expiresAt,
-        createdIp: currentIp
-    };
+    res.json({ 
+        success: true, 
+        hwidShort: user.hwid.substring(0, 8) + "...", // Chỉ hiện 1 phần HWID cho đẹp
+        keyStatus: keyStatus,
+        currentKey: keyStatus === "ACTIVE" ? user.key : null,
+        timeLeft: timeLeft,
+        totalGenerations: user.totalKeysGenerated
+    });
+});
 
-    // Xóa session để không dùng lại được
-    delete sessions[sessionId];
+// 3. START LINKVERTISE (Khi bấm Get Key)
+app.post('/api/start-process', async (req, res) => {
+    const { sessionId } = req.body;
+    const session = await SessionModel.findOne({ sessionId });
+    
+    if (!session) return res.json({ success: false });
 
-    console.log(`[SUCCESS] Key Generated for ${session.hwid}`);
+    // Tạo Dynamic Link
+    const destination = `${YOUR_DOMAIN}/api/callback?sid=${sessionId}&t=${session.secretToken}`;
+    const base64 = Buffer.from(destination).toString('base64');
+    const link = `https://link-to.net/${LINKVERTISE_USER_ID}/${Math.floor(Math.random()*1000)}/dynamic/?r=${base64}`;
+
+    res.json({ success: true, link });
+});
+
+// 4. CALLBACK
+app.get('/api/callback', async (req, res) => {
+    const { sid, t } = req.query;
+    const session = await SessionModel.findOne({ sessionId: sid });
+    
+    if (session && session.secretToken === t) {
+        session.verified = true;
+        await session.save();
+        res.redirect(`/?id=${sid}#completed`);
+    } else {
+        res.send("Invalid Token");
+    }
+});
+
+// 5. GENERATE KEY (Hoàn tất)
+app.post('/api/complete-process', async (req, res) => {
+    const { sessionId } = req.body;
+    const session = await SessionModel.findOne({ sessionId });
+
+    if (!session || !session.verified) return res.json({ success: false, error: "Unverified" });
+
+    // Tạo Key mới
+    const newKey = `HAIRKEY_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const expires = new Date(Date.now() + 24*60*60*1000); // 24h
+
+    // Cập nhật vào User
+    const user = await UserModel.findOne({ hwid: session.hwid });
+    user.key = newKey;
+    user.keyExpires = expires;
+    user.totalKeysGenerated += 1;
+    await user.save();
+
+    await SessionModel.deleteOne({ sessionId }); // Xóa session cho sạch
+
     res.json({ success: true, key: newKey });
 });
 
-// 3. API: Script Roblox Check Key
-app.get('/api/check-key', (req, res) => {
+// 6. CHECK KEY (Cho Roblox)
+app.get('/api/check-key', async (req, res) => {
     const { hwid, key } = req.query;
-    
-    const record = keys[hwid];
+    const user = await UserModel.findOne({ hwid });
 
-    if (!record) {
-        return res.json({ valid: false, message: "HWID chưa có Key." });
+    if (user && user.key === key && user.keyExpires > new Date()) {
+        return res.json({ valid: true });
     }
-
-    // Check thời hạn
-    if (Date.now() > record.expires) {
-        delete keys[hwid]; // Xóa key hết hạn
-        return res.json({ valid: false, message: "Key đã hết hạn. Vui lòng lấy lại." });
-    }
-
-    // Check khớp Key
-    if (record.key !== key) {
-        return res.json({ valid: false, message: "Key sai!" });
-    }
-
-    // Thành công
-    // Tính thời gian còn lại để hiển thị (Optional)
-    const hoursLeft = Math.floor((record.expires - Date.now()) / (1000 * 60 * 60));
-    return res.json({ valid: true, message: `Key hợp lệ! Còn lại ${hoursLeft} giờ.` });
+    return res.json({ valid: false });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server Secure is running at port ${PORT}`);
-});
+app.listen(PORT, () => console.log('Server running...'));

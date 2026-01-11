@@ -3,221 +3,388 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAIRKEY</title>
+    <title>HAIRKEY /// MAINFRAME ACCESS</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        /* --- CORE STYLE --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* === 1. CORE VARIABLES & RESET === */
+        :root {
+            --neon-green: #00ff41;
+            --neon-blue: #00f7ff;
+            --alert-red: #ff003c;
+            --dark-bg: #020202;
+            --glass-bg: rgba(0, 20, 5, 0.65);
+            --glass-border: rgba(0, 255, 65, 0.25);
+            --tech-font: 'Share Tech Mono', monospace;
+            --header-font: 'Rajdhani', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
         body {
-            background-color: #000;
-            color: #0f0;
-            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--dark-bg);
+            color: var(--neon-green);
+            font-family: var(--tech-font);
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            user-select: none;
+            perspective: 1000px;
         }
 
-        /* --- CRT BACKGROUND --- */
-        body::before {
-            content: " "; display: block; position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        /* === 2. CYBERPUNK BACKGROUND === */
+        .cyber-grid-bg {
+            position: absolute; top: 0; left: 0; width: 200%; height: 200%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 65, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            transform: perspective(500px) rotateX(60deg) translateY(-10%) translateZ(-200px);
+            animation: cyber-grid-move 10s linear infinite;
+            opacity: 0.3; z-index: -2;
+        }
+        @keyframes cyber-grid-move { from { background-position: 0 0; } to { background-position: 0 40px; } }
+
+        .vignette-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 40%, #000 90%);
+            z-index: -1; pointer-events: none;
         }
 
-        /* --- MAIN BOX --- */
-        .container {
-            width: 100%; max-width: 500px;
-            text-align: center;
-            z-index: 10;
-            padding: 20px;
-            border: 1px solid #333;
-            background: rgba(0, 10, 0, 0.95);
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.1);
+        /* === 3. MAIN GLASSMORPHISM CARD === */
+        .cyber-card {
+            position: relative;
+            width: 90%; max-width: 550px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px) saturate(120%);
+            -webkit-backdrop-filter: blur(25px) saturate(120%);
+            border: 1px solid var(--glass-border);
+            padding: 40px 30px;
+            border-radius: 4px;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 65, 0.15),
+                inset 0 0 20px rgba(0, 255, 65, 0.05);
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 95% 100%, 0 100%); /* Góc vát kỹ thuật */
+            animation: cardEnter 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+            transform: translateY(30px); opacity: 0;
         }
+        @keyframes cardEnter { to { transform: translateY(0); opacity: 1; } }
 
-        h1 {
-            font-size: 3rem;
-            letter-spacing: 5px;
-            margin-bottom: 10px;
-            text-shadow: 0 0 10px #0f0;
-            border-bottom: 2px solid #0f0;
-            display: inline-block;
-            padding-bottom: 5px;
+        /* Đường viền sáng chạy xung quanh */
+        .cyber-card::before {
+            content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-green), transparent, var(--neon-blue), transparent);
+            z-index: -1; background-size: 400%;
+            border-radius: inherit; opacity: 0.5;
+            animation: glowingBorder 10s linear infinite;
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 95% 100%, 0 100%);
         }
+        @keyframes glowingBorder { 0% { background-position: 0 0; } 100% { background-position: 400% 0; } }
 
-        p { color: #888; margin-bottom: 20px; font-size: 0.9rem; }
-
-        /* --- BUTTON & STATUS --- */
-        .status-box {
-            font-size: 1.2rem;
-            margin: 20px 0;
-            min-height: 40px;
-            color: #fff;
+        /* === 4. TYPOGRAPHY & GLITCH HEADER === */
+        .header-section { text-align: center; margin-bottom: 35px; position: relative; }
+        h1.cyber-glitch {
+            font-family: var(--header-font);
+            font-weight: 700; font-size: 3.5rem;
+            letter-spacing: 4px; color: #fff;
+            text-shadow: 0 0 10px var(--neon-green);
+            position: relative; display: inline-block;
         }
-
-        .action-btn {
-            background: #0f0;
-            color: #000;
-            border: none;
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            font-family: inherit;
-            cursor: pointer;
-            text-transform: uppercase;
-            clip-path: polygon(10% 0, 100% 0, 100% 80%, 90% 100%, 0 100%, 0 20%);
-            transition: 0.2s;
-            animation: pulse 2s infinite;
+        /* Glitch CSS (Rút gọn) */
+        h1.cyber-glitch::before, h1.cyber-glitch::after {
+            content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.8;
         }
-        
-        .action-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px #0f0; }
-        .action-btn:disabled { background: #333; color: #555; cursor: not-allowed; animation: none; box-shadow: none; }
+        h1.cyber-glitch::before { color: var(--neon-blue); z-index: -1; animation: glitch-anim-1 3s infinite linear alternate-reverse; }
+        h1.cyber-glitch::after { color: var(--alert-red); z-index: -2; animation: glitch-anim-2 2.5s infinite linear alternate-reverse; }
+        @keyframes glitch-anim-1 { 0% { clip-path: inset(20% 0 60% 0); transform: translate(-2px, -2px); } 100% { clip-path: inset(60% 0 20% 0); transform: translate(2px, 2px); } }
+        @keyframes glitch-anim-2 { 0% { clip-path: inset(10% 0 70% 0); transform: translate(2px, 2px); } 100% { clip-path: inset(70% 0 10% 0); transform: translate(-2px, -2px); } }
 
-        /* --- KEY DISPLAY --- */
-        .key-box {
-            display: none;
-            margin-top: 20px;
-            padding: 20px;
-            border: 2px dashed #0f0;
-            color: #0f0;
-            font-size: 1.5rem;
-            word-break: break-all;
-            cursor: pointer;
+        .subtitle { color: var(--neon-green); letter-spacing: 2px; font-size: 0.85rem; opacity: 0.8; margin-top: 5px; }
+        .subtitle::before, .subtitle::after { content: '//'; color: #555; margin: 0 5px; }
+
+        /* === 5. DASHBOARD DATA PANEL === */
+        .data-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            padding: 15px; margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            position: relative; overflow: hidden;
         }
-        .key-box:hover { background: rgba(0, 255, 0, 0.1); }
-        .copy-hint { font-size: 0.8rem; color: #555; margin-top: 5px; }
+        .data-panel::after { /* Hiệu ứng quét (Scanline) */
+            content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.2), transparent);
+            animation: scanline 4s infinite linear;
+        }
+        @keyframes scanline { 100% { left: 150%; } }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
-        .blink { animation: blinker 0.5s linear infinite; color: red; }
-        @keyframes blinker { 50% { opacity: 0; } }
+        .data-group { display: flex; flex-direction: column; }
+        .data-label { font-size: 0.75rem; color: #666; letter-spacing: 1px; margin-bottom: 3px; }
+        .data-value { font-size: 1.1rem; color: #fff; text-shadow: 0 0 5px var(--neon-green); display: flex; align-items: center; gap: 8px; }
+        .data-icon { font-size: 0.9rem; color: var(--neon-green); }
+
+        /* === 6. STATUS INDICATORS === */
+        .status-container { text-align: center; margin-bottom: 30px; }
+        .cyber-badge {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 10px 25px;
+            border: 1px solid currentColor;
+            font-weight: bold; letter-spacing: 2px;
+            text-transform: uppercase; font-size: 1.1rem;
+            position: relative; overflow: hidden;
+        }
+        .status-active { color: var(--neon-green); box-shadow: 0 0 15px rgba(0, 255, 65, 0.4), inset 0 0 10px rgba(0, 255, 65, 0.2); animation: pulseGreen 2s infinite; }
+        .status-expired { color: var(--alert-red); box-shadow: 0 0 15px rgba(255, 0, 60, 0.4), inset 0 0 10px rgba(255, 0, 60, 0.2); animation: pulseRed 2s infinite; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
+        @keyframes pulseGreen { 50% { box-shadow: 0 0 25px rgba(0, 255, 65, 0.6), inset 0 0 15px rgba(0, 255, 65, 0.3); } }
+        @keyframes pulseRed { 50% { box-shadow: 0 0 25px rgba(255, 0, 60, 0.6), inset 0 0 15px rgba(255, 0, 60, 0.3); } }
+
+        /* === 7. KEY DISPLAY & BUTTONS === */
+        .key-vault {
+            background: rgba(0, 20, 5, 0.8);
+            border: 2px dashed var(--neon-green);
+            padding: 20px; text-align: center; cursor: pointer;
+            transition: 0.3s; position: relative;
+        }
+        .key-vault:hover { background: rgba(0, 255, 65, 0.1); border-style: solid; box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); }
+        .vault-key-text { font-size: 1.8rem; color: #fff; text-shadow: 0 0 8px #fff; word-break: break-all; font-family: var(--header-font); }
+        .vault-timer { color: var(--neon-blue); margin-top: 10px; font-size: 0.9rem; display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .click-hint { position: absolute; bottom: 5px; right: 10px; font-size: 0.7rem; color: #666; opacity: 0; transition: 0.3s; }
+        .key-vault:hover .click-hint { opacity: 1; }
+
+        .cyber-btn {
+            width: 100%; padding: 20px;
+            background: transparent; border: 2px solid var(--neon-green);
+            color: var(--neon-green); font-family: var(--header-font);
+            font-size: 1.3rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+            cursor: pointer; transition: 0.2s; position: relative; overflow: hidden;
+            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+        }
+        .cyber-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: var(--neon-green); transition: 0.3s; z-index: -1; }
+        .cyber-btn:hover { color: #000; box-shadow: 0 0 30px var(--neon-green); }
+        .cyber-btn:hover::before { left: 0; }
+        .cyber-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; box-shadow: none; }
+        .cyber-btn:disabled::before { display: none; }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
+    <audio id="sfxHover" src="https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3"></audio>
+    <audio id="sfxClick" src="https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3"></audio>
+    <audio id="sfxSuccess" src="https://assets.mixkit.co/active_storage/sfx/2197/2197-preview.mp3"></audio>
 
-    <div class="container">
-        <h1>HAIRKEY</h1>
-        <p>SECURE VERIFICATION SYSTEM</p>
+    <div class="cyber-grid-bg"></div>
+    <div class="vignette-overlay"></div>
 
-        <div id="status" class="status-box">INITIALIZING...</div>
+    <div class="cyber-card">
+        <div class="header-section">
+            <h1 class="cyber-glitch" data-text="HAIRKEY">HAIRKEY</h1>
+            <p class="subtitle">QUANTUM ACCESS PROTOCOL v10.0</p>
+        </div>
 
-        <button id="mainBtn" class="action-btn" onclick="handleAction()" disabled>WAITING...</button>
+        <div class="data-panel">
+            <div class="data-group">
+                <span class="data-label">OPERATIVE ID</span>
+                <span class="data-value" id="userId">
+                    <i class="fas fa-user-astronaut data-icon"></i> SEARCHING...
+                </span>
+            </div>
+            <div class="data-group" style="text-align: right;">
+                <span class="data-label">GENERATIONS</span>
+                <span class="data-value" id="stats">
+                    0 <i class="fas fa-bolt data-icon"></i>
+                </span>
+            </div>
+        </div>
 
-        <div id="keyArea" class="key-box" onclick="copyKey()">
-            <span id="keyText"></span>
-            <div class="copy-hint">[CLICK TO COPY]</div>
+        <div id="activeView" class="hidden fade-in">
+            <div class="status-container">
+                <div class="cyber-badge status-active">
+                    <span class="status-dot"></span> SYSTEM ARMED /// ACTIVE
+                </div>
+            </div>
+            <div class="key-vault" onclick="copyKey()" onmouseover="playSfx('hover')">
+                <div class="vault-key-text" id="activeKey">DECRYPTING...</div>
+                <div class="vault-timer">
+                    <i class="far fa-clock"></i> <span id="timeLeft">CALCULATING REMAINING TIME...</span>
+                </div>
+                <div class="click-hint">[ LEFT CLICK TO EXTRACT KEY ]</div>
+            </div>
+            <p style="text-align: center; color: #666; font-size: 0.8rem; margin-top: 15px;">
+                // No further interaction required. Input key into client console.
+            </p>
+        </div>
+
+        <div id="expiredView" class="hidden fade-in">
+             <div class="status-container">
+                <div id="statusText" class="cyber-badge status-expired">
+                    <span class="status-dot"></span> LICENSE EXPIRED /// OFFLINE
+                </div>
+            </div>
+            <div style="text-align: center;">
+                 <p style="margin-bottom: 20px; color: #aaa;">Access token has expired. Re-initialization required.</p>
+                <button id="adsBtn" class="cyber-btn" onclick="handleAds()" onmouseover="playSfx('hover')">
+                    INITIATE BYPASS SEQUENCE
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        // CẤU HÌNH LINK LINKVERTISE CỦA BẠN TẠI ĐÂY
-        const LINKVERTISE_URL = "https://link-hub.net/924538/1ISw87MxsYYw"; 
-        
-        const statusEl = document.getElementById('status');
-        const btn = document.getElementById('mainBtn');
-        const keyArea = document.getElementById('keyArea');
-        
-        let currentState = "loading"; // loading | ready_to_ad | complete
+        // --- SFX CONTROLLER ---
+        function playSfx(type) {
+            const hover = document.getElementById('sfxHover');
+            const click = document.getElementById('sfxClick');
+            const success = document.getElementById('sfxSuccess');
+            
+            hover.volume = 0.2; click.volume = 0.4; success.volume = 0.3;
 
-        window.onload = async function() {
-            // TRƯỜNG HỢP 1: QUAY LẠI TỪ ADS (#completed)
+            if(type === 'hover') { hover.currentTime = 0; hover.play().catch(()=>{}); }
+            if(type === 'click') { click.currentTime = 0; click.play().catch(()=>{}); }
+            if(type === 'success') { success.currentTime = 0; success.play().catch(()=>{}); }
+        }
+
+        // --- MAIN LOGIC (Giữ nguyên từ bản trước) ---
+        const API_PROFILE = '/api/profile';
+        const API_START = '/api/start-process';
+        const API_COMPLETE = '/api/complete-process';
+        let sessionId = null;
+
+        window.onload = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            sessionId = urlParams.get('id');
+
             if (window.location.hash === "#completed") {
-                statusEl.innerText = "VERIFYING AD VIEW...";
-                verifyKey();
-                return;
+                await completeProcess(); return;
             }
 
-            // TRƯỜNG HỢP 2: NGƯỜI DÙNG MỚI (CÓ HWID)
-            const urlParams = new URLSearchParams(window.location.search);
-            const hwid = urlParams.get('hwid');
-
-            if (hwid) {
-                // Tự động Start luôn không cần hỏi
-                statusEl.innerText = "ESTABLISHING SECURE SESSION...";
-                try {
-                    const res = await fetch('/api/start-process', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ hwid })
-                    });
-                    const data = await res.json();
-                    
-                    if (data.success) {
-                        localStorage.setItem('session_id', data.sessionId);
-                        currentState = "ready_to_ad";
-                        statusEl.innerText = "SESSION SECURED.";
-                        btn.innerText = "UNLOCK KEY (WATCH AD)";
-                        btn.disabled = false;
-                    } else {
-                        showError(data.error);
-                    }
-                } catch (e) { showError("SERVER OFFLINE"); }
+            if (sessionId) {
+                await loadProfile();
             } else {
-                showError("INVALID LINK (MISSING HWID)");
+                document.querySelector('.cyber-card').innerHTML = `
+                    <div style="text-align:center; color:var(--alert-red);">
+                        <h1 style="font-family:var(--header-font); margin-bottom:10px;">CONNECTION FAILED</h1>
+                        <p>MISSING SESSION ID PROTOCOL.<br>PLEASE INITIATE FROM CLIENT SCRIPT.</p>
+                    </div>`;
             }
         };
 
-        function handleAction() {
-            if (currentState === "ready_to_ad") {
-                // Mở link quảng cáo
-                window.open(LINKVERTISE_URL, '_blank');
-                statusEl.innerText = "WAITING FOR COMPLETION...";
-                btn.innerText = "CHECKING...";
-                btn.disabled = true;
-            }
-        }
-
-        async function verifyKey() {
-            const sessionId = localStorage.getItem('session_id');
-            if (!sessionId) {
-                showError("SESSION EXPIRED. PLEASE GET LINK AGAIN.");
-                return;
-            }
-
+        async function loadProfile() {
             try {
-                const res = await fetch('/api/complete-process', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ sessionId })
+                const res = await fetch(API_PROFILE, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
                 });
                 const data = await res.json();
 
                 if (data.success) {
-                    // THÀNH CÔNG
-                    localStorage.removeItem('session_id'); // Xóa session
-                    showKey(data.key);
+                    // Update Data Panel với hiệu ứng gõ chữ nhẹ
+                    typeWriter('userId', data.hwidShort);
+                    document.getElementById('stats').innerHTML = `${data.totalGenerations} <i class="fas fa-bolt data-icon"></i>`;
+
+                    if (data.keyStatus === "ACTIVE") {
+                        showActive(data.currentKey, data.timeLeft);
+                    } else {
+                        showExpired(data.keyStatus);
+                    }
                 } else {
-                    // THẤT BẠI (Do bypass nhanh quá)
-                    statusEl.innerHTML = `<span class='blink'>WARNING:</span> ${data.error}`;
-                    btn.innerText = "TRY AGAIN (REFRESH)";
-                    btn.disabled = false;
-                    btn.onclick = () => window.location.reload();
+                    alert("SYSTEM ERROR: " + data.error);
                 }
-            } catch (e) { showError("VERIFICATION FAILED"); }
+            } catch (e) { console.error(e); }
         }
 
-        function showKey(key) {
-            statusEl.innerText = "ACCESS GRANTED.";
-            statusEl.style.color = "#0f0";
-            btn.style.display = 'none'; // Ẩn nút đi
-            keyArea.style.display = 'block';
-            document.getElementById('keyText').innerText = key;
+        function showActive(key, seconds) {
+            document.getElementById('activeView').classList.remove('hidden');
+            document.getElementById('expiredView').classList.add('hidden');
+            
+            playSfx('success');
+            decryptEffect(key); // Hiệu ứng giải mã key
+            
+            const timerEl = document.getElementById('timeLeft');
+            const interval = setInterval(() => {
+                seconds--;
+                if(seconds <= 0) { clearInterval(interval); window.location.reload(); }
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = seconds % 60;
+                timerEl.innerText = `SESSION EXPIRY: ${h}H ${m.toString().padStart(2,'0')}M ${s.toString().padStart(2,'0')}S`;
+            }, 1000);
         }
 
-        function showError(msg) {
-            statusEl.innerText = msg;
-            statusEl.style.color = "red";
-            btn.disabled = true;
-            btn.innerText = "ERROR";
+        function showExpired(status) {
+            document.getElementById('activeView').classList.add('hidden');
+            document.getElementById('expiredView').classList.remove('hidden');
+            
+            const badge = document.getElementById('statusText');
+            if(status === "NONE") {
+                badge.innerHTML = '<span class="status-dot" style="background:#888;box-shadow:none;"></span> UNREGISTERED /// NO LICENSE';
+                badge.classList.remove('status-expired'); badge.style.color = '#888'; badge.style.borderColor = '#888'; badge.style.animation = 'none';
+            } else {
+                // Mặc định là expired style
+            }
+        }
+
+        async function handleAds() {
+            playSfx('click');
+            const btn = document.getElementById('adsBtn');
+            btn.innerText = "ESTABLISHING UPLINK..."; btn.disabled = true;
+            
+            const res = await fetch(API_START, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
+            });
+            const data = await res.json();
+            if(data.success) {
+                window.open(data.link, '_blank');
+                btn.innerText = "AWAITING EXTERNAL VERIFICATION...";
+            } else { btn.innerText = "ERROR ESTABLISHING UPLINK"; btn.disabled = false;}
+        }
+
+        async function completeProcess() {
+            const res = await fetch(API_COMPLETE, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
+            });
+            const data = await res.json();
+            if(data.success) {
+                window.location.hash = ""; await loadProfile();
+            } else { alert("VERIFICATION FAILED: " + data.error); window.location.hash = ""; }
         }
 
         function copyKey() {
-            const k = document.getElementById('keyText').innerText;
+            playSfx('click');
+            const k = document.getElementById('activeKey').innerText;
             navigator.clipboard.writeText(k);
-            alert("COPIED: " + k);
+            const vault = document.querySelector('.key-vault');
+            vault.style.borderColor = 'var(--neon-blue)';
+            document.querySelector('.vault-key-text').innerText = "/// KEY COPIED TO CLIPBOARD ///";
+            setTimeout(() => {
+                 vault.style.borderColor = 'var(--neon-green)';
+                 document.querySelector('.vault-key-text').innerText = k;
+            }, 1500);
+        }
+
+        // --- VISUAL EFFECTS ---
+        function decryptEffect(finalKey) {
+            const keyEl = document.getElementById('activeKey');
+            let iterations = 0; const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            const interval = setInterval(() => {
+                keyEl.innerText = finalKey.split("").map((letter, index) => {
+                        if (index < iterations) return finalKey[index];
+                        return letters[Math.floor(Math.random() * letters.length)];
+                    }).join("");
+                if (iterations >= finalKey.length) clearInterval(interval);
+                iterations += 1 / 2;
+            }, 30);
+        }
+        function typeWriter(id, text) {
+            const el = document.getElementById(id); el.innerText = ""; let i = 0;
+            const interval = setInterval(() => { el.innerText += text.charAt(i); i++; if (i >= text.length) clearInterval(interval); }, 50);
         }
     </script>
 </body>
