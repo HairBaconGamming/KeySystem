@@ -17,6 +17,7 @@ const LINKVERTISE_USER_ID = process.env.LINKVERTISE_USER_ID;
 const ADMIN_USER = process.env.ADMIN_USER;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 const SESSION_SECRET = process.env.SESSION_SECRET;
+const CLOUDFLARE_SECRET_KEY = process.env.CLOUDFLARE_SECRET_KEY;
 
 // Validate Config
 if (!MONGO_URI || !LINKVERTISE_USER_ID) {
@@ -167,22 +168,41 @@ app.post('/api/profile', async (req, res) => {
 // 4. START PROCESS: Tạo Link Linkvertise Dynamic
 app.post('/api/start-process', async (req, res) => {
     try {
-        const { sessionId } = req.body;
+        const { sessionId, cfToken } = req.body; // Nhận thêm cfToken từ Client
+
+        // 1. KIỂM TRA TURNSTILE TOKEN
+        if (!cfToken) return res.json({ success: false, error: "Security Check Failed (No Token)" });
+
+        const cfVerify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                secret: CLOUDFLARE_SECRET_KEY,
+                response: cfToken
+            })
+        });
+        const cfData = await cfVerify.json();
+
+        if (!cfData.success) {
+            return res.json({ success: false, error: "Bot Detected! Please refresh." });
+        }
+
+        // 2. LOGIC CŨ (Kiểm tra session)
         const session = await SessionModel.findOne({ sessionId });
         if (!session) return res.json({ success: false, error: "Session Invalid" });
 
-        // Tạo Target URL (Callback về server)
+        // Tạo Linkvertise Link
         const targetUrl = `${YOUR_DOMAIN}/api/callback?sid=${sessionId}&t=${session.secretToken}`;
-        
-        // Mã hóa Base64 theo chuẩn Linkvertise
         const base64Url = Buffer.from(targetUrl).toString('base64');
-        
-        // Tạo Dynamic Link (Random path để tránh cache)
         const randomPath = Math.floor(Math.random() * 99999);
         const linkvertiseLink = `https://link-to.net/${LINKVERTISE_USER_ID}/${randomPath}/dynamic/?r=${base64Url}`;
 
         res.json({ success: true, link: linkvertiseLink });
-    } catch (e) { res.json({ success: false, error: e.message }); }
+
+    } catch (e) { 
+        console.error(e);
+        res.json({ success: false, error: "Internal Server Error" }); 
+    }
 });
 
 // 5. CALLBACK: Linkvertise redirect về đây

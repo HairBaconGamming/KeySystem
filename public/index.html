@@ -3,262 +3,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAIRKEY /// MAINFRAME ACCESS</title>
+    <title>HAIRKEY /// QUANTUM CORE</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
     <style>
-        /* === 1. CORE VARIABLES & RESET === */
+        /* =========================================
+           1. CORE SYSTEM VARIABLES & RESET
+           ========================================= */
         :root {
-            --neon-green: #00ff41;
-            --neon-blue: #00f7ff;
-            --alert-red: #ff003c;
-            --dark-bg: #020202;
-            --glass-bg: rgba(0, 20, 5, 0.65);
-            --glass-border: rgba(0, 255, 65, 0.25);
-            --tech-font: 'Share Tech Mono', monospace;
-            --header-font: 'Rajdhani', sans-serif;
+            --primary: #00f3ff; /* Cyan Neon */
+            --secondary: #bc13fe; /* Purple Neon */
+            --danger: #ff0055;
+            --success: #00ff66;
+            --bg-dark: #050505;
+            --panel-bg: rgba(10, 10, 15, 0.85);
+            --border: rgba(0, 243, 255, 0.3);
+            --font-head: 'Orbitron', sans-serif;
+            --font-code: 'Fira Code', monospace;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); }
 
         body {
-            background-color: var(--dark-bg);
-            color: var(--neon-green);
-            font-family: var(--tech-font);
+            background-color: var(--bg-dark);
+            color: var(--primary);
+            font-family: var(--font-code);
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             overflow: hidden;
-            perspective: 1000px;
-        }
-
-        /* === 2. CYBERPUNK BACKGROUND === */
-        .cyber-grid-bg {
-            position: absolute; top: 0; left: 0; width: 200%; height: 200%;
-            background-image: 
-                linear-gradient(rgba(0, 255, 65, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 65, 0.1) 1px, transparent 1px);
-            background-size: 40px 40px;
-            transform: perspective(500px) rotateX(60deg) translateY(-10%) translateZ(-200px);
-            animation: cyber-grid-move 10s linear infinite;
-            opacity: 0.3; z-index: -2;
-        }
-        @keyframes cyber-grid-move { from { background-position: 0 0; } to { background-position: 0 40px; } }
-
-        .vignette-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, transparent 40%, #000 90%);
-            z-index: -1; pointer-events: none;
-        }
-
-        /* === 3. MAIN GLASSMORPHISM CARD === */
-        .cyber-card {
             position: relative;
-            width: 90%; max-width: 550px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(25px) saturate(120%);
-            -webkit-backdrop-filter: blur(25px) saturate(120%);
-            border: 1px solid var(--glass-border);
-            padding: 40px 30px;
-            border-radius: 4px;
-            box-shadow: 
-                0 0 30px rgba(0, 255, 65, 0.15),
-                inset 0 0 20px rgba(0, 255, 65, 0.05);
-            clip-path: polygon(0 0, 100% 0, 100% 90%, 95% 100%, 0 100%); /* Góc vát kỹ thuật */
-            animation: cardEnter 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-            transform: translateY(30px); opacity: 0;
         }
-        @keyframes cardEnter { to { transform: translateY(0); opacity: 1; } }
 
-        /* Đường viền sáng chạy xung quanh */
-        .cyber-card::before {
-            content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
-            background: linear-gradient(45deg, var(--neon-green), transparent, var(--neon-blue), transparent);
-            z-index: -1; background-size: 400%;
-            border-radius: inherit; opacity: 0.5;
-            animation: glowingBorder 10s linear infinite;
-            clip-path: polygon(0 0, 100% 0, 100% 90%, 95% 100%, 0 100%);
+        /* CANVAS BACKGROUND */
+        #neural-net {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0; opacity: 0.4;
         }
-        @keyframes glowingBorder { 0% { background-position: 0 0; } 100% { background-position: 400% 0; } }
 
-        /* === 4. TYPOGRAPHY & GLITCH HEADER === */
-        .header-section { text-align: center; margin-bottom: 35px; position: relative; }
-        h1.cyber-glitch {
-            font-family: var(--header-font);
-            font-weight: 700; font-size: 3.5rem;
-            letter-spacing: 4px; color: #fff;
-            text-shadow: 0 0 10px var(--neon-green);
-            position: relative; display: inline-block;
+        /* SCANLINE OVERLAY */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            z-index: 999; pointer-events: none; opacity: 0.6;
         }
-        /* Glitch CSS (Rút gọn) */
-        h1.cyber-glitch::before, h1.cyber-glitch::after {
-            content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.8;
+
+        /* =========================================
+           2. BOOT SEQUENCE (Màn hình khởi động)
+           ========================================= */
+        #boot-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 10000;
+            padding: 40px; color: var(--success);
+            font-family: var(--font-code); font-size: 14px;
+            display: flex; flex-direction: column; justify-content: flex-end;
         }
-        h1.cyber-glitch::before { color: var(--neon-blue); z-index: -1; animation: glitch-anim-1 3s infinite linear alternate-reverse; }
-        h1.cyber-glitch::after { color: var(--alert-red); z-index: -2; animation: glitch-anim-2 2.5s infinite linear alternate-reverse; }
-        @keyframes glitch-anim-1 { 0% { clip-path: inset(20% 0 60% 0); transform: translate(-2px, -2px); } 100% { clip-path: inset(60% 0 20% 0); transform: translate(2px, 2px); } }
-        @keyframes glitch-anim-2 { 0% { clip-path: inset(10% 0 70% 0); transform: translate(2px, 2px); } 100% { clip-path: inset(70% 0 10% 0); transform: translate(-2px, -2px); } }
+        .boot-line { margin-bottom: 5px; opacity: 0; animation: typeLine 0.1s forwards; }
+        @keyframes typeLine { to { opacity: 1; } }
 
-        .subtitle { color: var(--neon-green); letter-spacing: 2px; font-size: 0.85rem; opacity: 0.8; margin-top: 5px; }
-        .subtitle::before, .subtitle::after { content: '//'; color: #555; margin: 0 5px; }
-
-        /* === 5. DASHBOARD DATA PANEL === */
-        .data-panel {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(0, 255, 65, 0.3);
-            padding: 15px; margin-bottom: 30px;
-            display: flex; justify-content: space-between; align-items: center;
-            position: relative; overflow: hidden;
+        /* =========================================
+           3. MAIN LAYOUT (GRID SYSTEM)
+           ========================================= */
+        #main-interface {
+            position: relative; z-index: 10;
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            grid-template-rows: 80px 1fr 60px;
+            height: 100vh; gap: 20px; padding: 20px;
+            opacity: 0; transition: opacity 1s;
         }
-        .data-panel::after { /* Hiệu ứng quét (Scanline) */
-            content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.2), transparent);
-            animation: scanline 4s infinite linear;
+
+        /* PANELS */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            padding: 20px; position: relative;
+            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.05);
         }
-        @keyframes scanline { 100% { left: 150%; } }
-
-        .data-group { display: flex; flex-direction: column; }
-        .data-label { font-size: 0.75rem; color: #666; letter-spacing: 1px; margin-bottom: 3px; }
-        .data-value { font-size: 1.1rem; color: #fff; text-shadow: 0 0 5px var(--neon-green); display: flex; align-items: center; gap: 8px; }
-        .data-icon { font-size: 0.9rem; color: var(--neon-green); }
-
-        /* === 6. STATUS INDICATORS === */
-        .status-container { text-align: center; margin-bottom: 30px; }
-        .cyber-badge {
-            display: inline-flex; align-items: center; gap: 10px;
-            padding: 10px 25px;
-            border: 1px solid currentColor;
-            font-weight: bold; letter-spacing: 2px;
-            text-transform: uppercase; font-size: 1.1rem;
-            position: relative; overflow: hidden;
+        .panel::before {
+            content: "SYSTEM_MODULE"; position: absolute; top: 2px; right: 5px;
+            font-size: 8px; color: var(--border); letter-spacing: 2px;
         }
-        .status-active { color: var(--neon-green); box-shadow: 0 0 15px rgba(0, 255, 65, 0.4), inset 0 0 10px rgba(0, 255, 65, 0.2); animation: pulseGreen 2s infinite; }
-        .status-expired { color: var(--alert-red); box-shadow: 0 0 15px rgba(255, 0, 60, 0.4), inset 0 0 10px rgba(255, 0, 60, 0.2); animation: pulseRed 2s infinite; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
-        @keyframes pulseGreen { 50% { box-shadow: 0 0 25px rgba(0, 255, 65, 0.6), inset 0 0 15px rgba(0, 255, 65, 0.3); } }
-        @keyframes pulseRed { 50% { box-shadow: 0 0 25px rgba(255, 0, 60, 0.6), inset 0 0 15px rgba(255, 0, 60, 0.3); } }
 
-        /* === 7. KEY DISPLAY & BUTTONS === */
-        .key-vault {
-            background: rgba(0, 20, 5, 0.8);
-            border: 2px dashed var(--neon-green);
-            padding: 20px; text-align: center; cursor: pointer;
-            transition: 0.3s; position: relative;
+        /* HEADER */
+        .header-area { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        h1 { font-family: var(--font-head); font-size: 2.5rem; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 15px var(--primary); }
+        .sys-status { text-align: right; }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        /* LEFT: LOGS */
+        .left-sidebar { grid-row: 2 / 3; overflow: hidden; display: flex; flex-direction: column; }
+        #system-logs {
+            flex: 1; overflow-y: hidden; 
+            font-size: 10px; color: #aaa; line-height: 1.4;
+            font-family: 'Courier New', Courier, monospace;
+            border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 10px;
         }
-        .key-vault:hover { background: rgba(0, 255, 65, 0.1); border-style: solid; box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); }
-        .vault-key-text { font-size: 1.8rem; color: #fff; text-shadow: 0 0 8px #fff; word-break: break-all; font-family: var(--header-font); }
-        .vault-timer { color: var(--neon-blue); margin-top: 10px; font-size: 0.9rem; display: flex; justify-content: center; align-items: center; gap: 5px; }
-        .click-hint { position: absolute; bottom: 5px; right: 10px; font-size: 0.7rem; color: #666; opacity: 0; transition: 0.3s; }
-        .key-vault:hover .click-hint { opacity: 1; }
+        .log-entry { margin-bottom: 2px; }
+        .log-warn { color: var(--secondary); }
+        .log-err { color: var(--danger); }
 
+        /* CENTER: CORE ACTION */
+        .center-stage { 
+            grid-row: 2 / 3; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center;
+        }
+
+        /* RIGHT: STATS */
+        .right-sidebar { grid-row: 2 / 3; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+        .stat-label { font-size: 0.8rem; color: #888; }
+        .stat-val { font-weight: bold; color: #fff; }
+
+        /* FOOTER */
+        .footer-area { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #666; border-top: 1px solid var(--border); padding-top: 10px; }
+
+        /* =========================================
+           4. UI COMPONENTS
+           ========================================= */
+        /* BUTTONS */
         .cyber-btn {
-            width: 100%; padding: 20px;
-            background: transparent; border: 2px solid var(--neon-green);
-            color: var(--neon-green); font-family: var(--header-font);
-            font-size: 1.3rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-            cursor: pointer; transition: 0.2s; position: relative; overflow: hidden;
-            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 20px 40px;
+            font-family: var(--font-head);
+            font-size: 1.2rem; cursor: pointer;
+            transition: 0.3s;
+            position: relative; overflow: hidden;
+            text-transform: uppercase; letter-spacing: 2px;
+            margin-top: 20px; width: 100%;
         }
-        .cyber-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: var(--neon-green); transition: 0.3s; z-index: -1; }
-        .cyber-btn:hover { color: #000; box-shadow: 0 0 30px var(--neon-green); }
-        .cyber-btn:hover::before { left: 0; }
-        .cyber-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; box-shadow: none; }
-        .cyber-btn:disabled::before { display: none; }
+        .cyber-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 50px var(--primary); }
+        .cyber-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; box-shadow: none; background: transparent; }
+        
+        /* KEY DISPLAY */
+        .key-container {
+            width: 100%; padding: 30px;
+            background: rgba(0,0,0,0.5); border: 1px solid var(--success);
+            margin-bottom: 20px; position: relative;
+            cursor: pointer; overflow: hidden;
+        }
+        .key-text { font-size: 2rem; color: var(--success); text-shadow: 0 0 10px var(--success); word-break: break-all; font-weight: bold; }
+        .key-container::after { content: "CLICK TO COPY"; position: absolute; bottom: 5px; right: 5px; font-size: 0.6rem; color: #666; }
 
-        /* Utility Classes */
-        .hidden { display: none !important; }
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* EXPIRED STATE */
+        .expired-box { border: 1px solid var(--danger); padding: 20px; width: 100%; background: rgba(255, 0, 85, 0.05); }
+        .danger-text { color: var(--danger); text-shadow: 0 0 10px var(--danger); font-size: 1.5rem; margin-bottom: 10px; }
+
+        /* TURNSTILE CONTAINER */
+        #turnstile-wrapper { margin: 20px 0; min-height: 65px; display: flex; justify-content: center; }
+
+        /* AUDIO CONTROL */
+        #audio-toggle { cursor: pointer; color: var(--primary); border: 1px solid var(--primary); padding: 5px 10px; font-size: 0.7rem; }
+        #audio-toggle:hover { background: var(--primary); color: #000; }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px) {
+            #main-interface { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; height: auto; overflow-y: auto; }
+            .left-sidebar, .right-sidebar { display: none; } /* Ẩn bớt trên mobile cho gọn */
+        }
     </style>
 </head>
 <body>
-    <audio id="sfxHover" src="https://cdn.pixabay.com/download/audio/2025/09/05/audio_2b677bbcc4.mp3?filename=minimalist-button-hover-sound-effect-399749.mp3"></audio>
-    <audio id="sfxClick" src="https://cdn.pixabay.com/download/audio/2024/04/21/audio_1b8d3bcd3d.mp3?filename=click-buttons-ui-menu-sounds-effects-button-7-203601.mp3"></audio>
-    <audio id="sfxSuccess" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f65046c221.mp3?filename=success-83493.mp3"></audio>
 
-    <div class="cyber-grid-bg"></div>
-    <div class="vignette-overlay"></div>
+    <audio id="sfx-boot" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_06953943ca.mp3?filename=reactos-boot-85864.mp3"></audio>
+    <audio id="sfx-hover" src="https://cdn.pixabay.com/download/audio/2025/09/05/audio_2b677bbcc4.mp3?filename=minimalist-button-hover-sound-effect-399749.mp3"></audio>
+    <audio id="sfx-click" src="https://cdn.pixabay.com/download/audio/2024/04/21/audio_1b8d3bcd3d.mp3?filename=click-buttons-ui-menu-sounds-effects-button-7-203601.mp3"></audio>
+    <audio id="sfx-success" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f65046c221.mp3?filename=success-83493.mp3"></audio>
 
-    <div class="cyber-card">
-        <div class="header-section">
-            <h1 class="cyber-glitch" data-text="HAIRKEY">HAIRKEY</h1>
-            <p class="subtitle">QUANTUM ACCESS PROTOCOL v10.0</p>
-        </div>
+    <canvas id="neural-net"></canvas>
+    <div class="scanlines"></div>
 
-        <div class="data-panel">
-            <div class="data-group">
-                <span class="data-label">OPERATIVE ID</span>
-                <span class="data-value" id="userId">
-                    <i class="fas fa-user-astronaut data-icon"></i> SEARCHING...
-                </span>
+    <div id="boot-screen"></div>
+
+    <div id="main-interface">
+        
+        <div class="header-area panel">
+            <div>
+                <h1>HAIRKEY</h1>
+                <div style="font-size: 0.8rem; letter-spacing: 2px;">QUANTUM OS v9.9.2</div>
             </div>
-            <div class="data-group" style="text-align: right;">
-                <span class="data-label">GENERATIONS</span>
-                <span class="data-value" id="stats">
-                    0 <i class="fas fa-bolt data-icon"></i>
-                </span>
+            <div class="sys-status">
+                <div style="color: var(--success);">● SYSTEM ONLINE</div>
+                <div id="clock">00:00:00</div>
             </div>
         </div>
 
-        <div id="activeView" class="hidden fade-in">
-            <div class="status-container">
-                <div class="cyber-badge status-active">
-                    <span class="status-dot"></span> SYSTEM ARMED /// ACTIVE
-                </div>
-            </div>
-            <div class="key-vault" onclick="copyKey()" onmouseover="playSfx('hover')">
-                <div class="vault-key-text" id="activeKey">DECRYPTING...</div>
-                <div class="vault-timer">
-                    <i class="far fa-clock"></i> <span id="timeLeft">CALCULATING REMAINING TIME...</span>
-                </div>
-                <div class="click-hint">[ LEFT CLICK TO EXTRACT KEY ]</div>
-            </div>
-            <p style="text-align: center; color: #666; font-size: 0.8rem; margin-top: 15px;">
-                // No further interaction required. Input key into client console.
-            </p>
+        <div class="left-sidebar panel">
+            <h3 style="border-bottom: 1px solid #333; padding-bottom: 5px;">> SYSTEM_LOGS</h3>
+            <div id="system-logs"></div>
         </div>
 
-        <div id="expiredView" class="hidden fade-in">
-             <div class="status-container">
-                <div id="statusText" class="cyber-badge status-expired">
-                    <span class="status-dot"></span> LICENSE EXPIRED /// OFFLINE
+        <div class="center-stage panel">
+            
+            <div style="margin-bottom: 30px; width: 100%;">
+                <div style="font-size: 0.7rem; color: #666;">CONNECTED IDENTITY</div>
+                <div id="user-display" style="font-size: 1.5rem; letter-spacing: 3px; background: rgba(0,0,0,0.3); padding: 10px;">
+                    INITIALIZING...
                 </div>
             </div>
-            <div style="text-align: center;">
-                 <p style="margin-bottom: 20px; color: #aaa;">Access token has expired. Re-initialization required.</p>
-                <button id="adsBtn" class="cyber-btn" onclick="handleAds()" onmouseover="playSfx('hover')">
-                    INITIATE BYPASS SEQUENCE
+
+            <div id="view-expired" class="expired-box" style="display: none;">
+                <div class="danger-text">⚠️ ACCESS DENIED</div>
+                <p style="margin-bottom: 20px; font-size: 0.9rem;">Security protocol requires verification.</p>
+                
+                <div id="turnstile-wrapper"></div>
+
+                <button id="btn-ads" class="cyber-btn" onclick="handleAds()" disabled>
+                    <i class="fas fa-lock"></i> INITIALIZE BYPASS
                 </button>
             </div>
+
+            <div id="view-active" style="display: none; width: 100%;">
+                <div style="color: var(--success); margin-bottom: 10px; font-weight: bold; letter-spacing: 2px;">
+                    <i class="fas fa-shield-alt"></i> ACCESS GRANTED
+                </div>
+                
+                <div class="key-container" onclick="copyKey()">
+                    <div id="key-text" class="key-text">LOADING...</div>
+                </div>
+
+                <div style="font-size: 0.9rem; margin-top: 10px;">
+                    SESSION EXPIRES IN: <span id="time-left" style="color: var(--primary);">...</span>
+                </div>
+            </div>
+
         </div>
+
+        <div class="right-sidebar panel">
+            <h3 style="border-bottom: 1px solid #333; padding-bottom: 5px;">> METRICS</h3>
+            <div style="margin-top: 20px;">
+                <div class="stat-row">
+                    <span class="stat-label">LATENCY</span>
+                    <span class="stat-val" id="ping-val">24ms</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">ENCRYPTION</span>
+                    <span class="stat-val" style="color: var(--secondary);">AES-256</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">GENERATIONS</span>
+                    <span class="stat-val" id="stats-gen">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">SERVER LOAD</span>
+                    <span class="stat-val">
+                        <div style="width: 50px; height: 5px; background: #333; display: inline-block;">
+                            <div style="width: 40%; height: 100%; background: var(--success);" class="blink"></div>
+                        </div>
+                    </span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; width: 100%; height: 100px; border: 1px dashed var(--border); border-radius: 50%; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--success); transform-origin: left; animation: radar 2s infinite linear;"></div>
+            </div>
+        </div>
+
+        <div class="footer-area panel">
+            <div>SECURE CONNECTION ESTABLISHED // NODE: ALPHA-7</div>
+            <div id="audio-toggle" onclick="toggleAudio()">[ SOUND: ON ]</div>
+        </div>
+
     </div>
 
     <script>
-        // --- SFX CONTROLLER ---
-        function playSfx(type) {
-            const hover = document.getElementById('sfxHover');
-            const click = document.getElementById('sfxClick');
-            const success = document.getElementById('sfxSuccess');
-            
-            hover.volume = 0.2; click.volume = 0.4; success.volume = 0.3;
-
-            if(type === 'hover') { hover.currentTime = 0; hover.play().catch(()=>{}); }
-            if(type === 'click') { click.currentTime = 0; click.play().catch(()=>{}); }
-            if(type === 'success') { success.currentTime = 0; success.play().catch(()=>{}); }
-        }
-
-        // --- MAIN LOGIC (Giữ nguyên từ bản trước) ---
+        // CONFIG
+        const CLOUDFLARE_SITE_KEY = "0x4AAAAAABBLlduN6HavujOQ"; // <--- THAY KEY CỦA BẠN
         const API_PROFILE = '/api/profile';
         const API_START = '/api/start-process';
         const API_COMPLETE = '/api/complete-process';
+
+        // STATE
         let sessionId = null;
+        let cfToken = null;
+        let audioEnabled = true;
+
+        // --- 1. BOOT SEQUENCE ---
+        const bootText = [
+            "INITIALIZING KERNEL...",
+            "LOADING MODULES: NET, CRYPTO, UI...",
+            "CONNECTING TO MAINFRAME...",
+            "BYPASSING FIREWALLS...",
+            "ESTABLISHING SECURE HANDSHAKE...",
+            "SYSTEM READY."
+        ];
 
         window.onload = async () => {
+            // Chạy Boot Screen
+            const bootScreen = document.getElementById('boot-screen');
+            for(let i=0; i<bootText.length; i++) {
+                const div = document.createElement('div');
+                div.className = 'boot-line';
+                div.innerText = `> ${bootText[i]}`;
+                bootScreen.appendChild(div);
+                await new Promise(r => setTimeout(r, 300)); // Delay
+            }
+            await new Promise(r => setTimeout(r, 500));
+            bootScreen.style.display = 'none';
+            document.getElementById('main-interface').style.opacity = 1;
+            
+            // Play Sound
+            playSound('boot');
+            initCanvas(); // Start background
+            startFakeLogs(); // Start fake logs
+            setInterval(updateClock, 1000);
+            setInterval(updatePing, 2000);
+
+            // Logic chính
             const urlParams = new URLSearchParams(window.location.search);
             sessionId = urlParams.get('id');
 
@@ -269,15 +333,15 @@
             if (sessionId) {
                 await loadProfile();
             } else {
-                document.querySelector('.cyber-card').innerHTML = `
-                    <div style="text-align:center; color:var(--alert-red);">
-                        <h1 style="font-family:var(--header-font); margin-bottom:10px;">CONNECTION FAILED</h1>
-                        <p>MISSING SESSION ID PROTOCOL.<br>PLEASE INITIATE FROM CLIENT SCRIPT.</p>
-                    </div>`;
+                addLog("FATAL: MISSING SESSION ID", "err");
+                document.getElementById('user-display').innerText = "DISCONNECTED";
+                document.getElementById('user-display').style.color = "var(--danger)";
             }
         };
 
+        // --- 2. API LOGIC ---
         async function loadProfile() {
+            addLog("FETCHING USER PROFILE...", "warn");
             try {
                 const res = await fetch(API_PROFILE, {
                     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
@@ -285,121 +349,214 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    // Update Data Panel với hiệu ứng gõ chữ nhẹ
-                    typeWriter('userId', data.hwidShort);
-                    document.getElementById('stats').innerHTML = `${data.totalGenerations} <i class="fas fa-bolt data-icon"></i>`;
-
+                    addLog("USER IDENTIFIED: " + data.hwidShort);
+                    document.getElementById('user-display').innerText = data.hwidShort;
+                    document.getElementById('stats-gen').innerText = data.totalGenerations;
+                    
                     if (data.keyStatus === "ACTIVE") {
                         showActive(data.currentKey, data.timeLeft);
                     } else {
-                        showExpired(data.keyStatus);
+                        showExpired();
                     }
                 } else {
-                    alert("SYSTEM ERROR: " + data.error);
+                    addLog("ERROR: " + data.error, "err");
                 }
             } catch (e) { console.error(e); }
         }
 
         function showActive(key, seconds) {
-            document.getElementById('activeView').classList.remove('hidden');
-            document.getElementById('expiredView').classList.add('hidden');
+            document.getElementById('view-active').style.display = 'block';
+            document.getElementById('view-expired').style.display = 'none';
+            playSound('success');
             
-            playSfx('success');
-            decryptEffect(key); // Hiệu ứng giải mã key
-            
-            const timerEl = document.getElementById('timeLeft');
+            // Decrypt Effect
+            const keyEl = document.getElementById('key-text');
+            let iter = 0; const chars = "ABCDEF0123456789";
             const interval = setInterval(() => {
+                keyEl.innerText = key.split("").map((l, i) => {
+                    if (i < iter) return key[i];
+                    return chars[Math.floor(Math.random() * chars.length)];
+                }).join("");
+                if (iter >= key.length) clearInterval(interval);
+                iter += 1/2;
+            }, 30);
+
+            // Countdown
+            const timer = document.getElementById('time-left');
+            setInterval(() => {
                 seconds--;
-                if(seconds <= 0) { clearInterval(interval); window.location.reload(); }
+                if(seconds <= 0) window.location.reload();
                 const h = Math.floor(seconds / 3600);
                 const m = Math.floor((seconds % 3600) / 60);
-                const s = seconds % 60;
-                timerEl.innerText = `SESSION EXPIRY: ${h}H ${m.toString().padStart(2,'0')}M ${s.toString().padStart(2,'0')}S`;
+                timer.innerText = `${h}H ${m}M`;
             }, 1000);
         }
 
-        function showExpired(status) {
-            document.getElementById('activeView').classList.add('hidden');
-            document.getElementById('expiredView').classList.remove('hidden');
+        function showExpired() {
+            document.getElementById('view-active').style.display = 'none';
+            document.getElementById('view-expired').style.display = 'block';
+            addLog("LICENSE EXPIRED. SECURITY CHECK REQ.", "err");
             
-            const badge = document.getElementById('statusText');
-            if(status === "NONE") {
-                badge.innerHTML = '<span class="status-dot" style="background:#888;box-shadow:none;"></span> UNREGISTERED /// NO LICENSE';
-                badge.classList.remove('status-expired'); badge.style.color = '#888'; badge.style.borderColor = '#888'; badge.style.animation = 'none';
-            } else {
-                // Mặc định là expired style
-            }
+            // Render Turnstile
+            turnstile.render('#turnstile-wrapper', {
+                sitekey: CLOUDFLARE_SITE_KEY,
+                theme: 'dark',
+                callback: function(token) {
+                    cfToken = token;
+                    const btn = document.getElementById('btn-ads');
+                    btn.disabled = false;
+                    btn.style.boxShadow = "0 0 20px var(--success)";
+                    btn.style.borderColor = "var(--success)";
+                    btn.style.color = "var(--success)";
+                    btn.innerHTML = `<i class="fas fa-unlock"></i> GENERATE LINK`;
+                    playSound('hover');
+                    addLog("HUMAN VERIFIED via CLOUDFLARE");
+                }
+            });
         }
 
         async function handleAds() {
-            playSfx('click');
-            const btn = document.getElementById('adsBtn');
-            btn.innerText = "ESTABLISHING UPLINK..."; btn.disabled = true;
-            
+            if(!cfToken) return;
+            playSound('click');
+            const btn = document.getElementById('btn-ads');
+            btn.innerHTML = "GENERATING..."; btn.disabled = true;
+            addLog("REQUESTING DYNAMIC LINK...", "warn");
+
             const res = await fetch(API_START, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ sessionId, cfToken })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                window.open(data.link, '_blank');
+                btn.innerText = "WAITING FOR SIGNAL...";
+                addLog("LINK OPENED. WAITING CALLBACK...");
+            } else {
+                addLog("ERROR: " + data.error, "err");
+                setTimeout(() => window.location.reload(), 2000);
+            }
+        }
+
+        async function completeProcess() {
+            addLog("CALLBACK RECEIVED. VERIFYING...", "warn");
+            const res = await fetch(API_COMPLETE, {
                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
             });
             const data = await res.json();
             if(data.success) {
-                window.open(data.link, '_blank');
-                btn.innerText = "AWAITING EXTERNAL VERIFICATION...";
-            } else { btn.innerText = "ERROR ESTABLISHING UPLINK"; btn.disabled = false;}
-        }
-
-        async function completeProcess() {
-            try {
-                const res = await fetch(API_COMPLETE, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
-                });
-                const data = await res.json();
-                
-                if(data.success) {
-                    // Thành công -> Xóa hash và load profile
-                    window.location.hash = ""; 
-                    await loadProfile();
-                } else {
-                    // --- ĐOẠN SỬA LỖI Ở ĐÂY ---
-                    // Nếu lỗi là do Session mất (do F5 lại), ta thử load profile luôn
-                    // Vì có thể user đã có Key rồi, chỉ là lỡ tay F5 thôi.
-                    console.log("Session lost, trying to reload profile...");
-                    window.location.hash = ""; // Xóa cái #completed đi
-                    await loadProfile(); 
-                }
-            } catch (e) { 
-                console.error(e);
+                window.location.hash = "";
+                await loadProfile();
+            } else {
+                addLog("VERIFY FAILED. RETRYING...", "err");
+                window.location.hash = "";
+                await loadProfile();
             }
         }
 
         function copyKey() {
-            playSfx('click');
-            const k = document.getElementById('activeKey').innerText;
+            playSound('click');
+            const k = document.getElementById('key-text').innerText;
             navigator.clipboard.writeText(k);
-            const vault = document.querySelector('.key-vault');
-            vault.style.borderColor = 'var(--neon-blue)';
-            document.querySelector('.vault-key-text').innerText = "/// KEY COPIED TO CLIPBOARD ///";
-            setTimeout(() => {
-                 vault.style.borderColor = 'var(--neon-green)';
-                 document.querySelector('.vault-key-text').innerText = k;
-            }, 1500);
+            addLog("KEY COPIED TO CLIPBOARD");
+            alert("COPIED!");
         }
 
-        // --- VISUAL EFFECTS ---
-        function decryptEffect(finalKey) {
-            const keyEl = document.getElementById('activeKey');
-            let iterations = 0; const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            const interval = setInterval(() => {
-                keyEl.innerText = finalKey.split("").map((letter, index) => {
-                        if (index < iterations) return finalKey[index];
-                        return letters[Math.floor(Math.random() * letters.length)];
-                    }).join("");
-                if (iterations >= finalKey.length) clearInterval(interval);
-                iterations += 1 / 2;
-            }, 30);
+        // --- 3. SYSTEM UTILS (Fake Logs, Clock, Audio) ---
+        function updateClock() {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', {hour12: false});
         }
-        function typeWriter(id, text) {
-            const el = document.getElementById(id); el.innerText = ""; let i = 0;
-            const interval = setInterval(() => { el.innerText += text.charAt(i); i++; if (i >= text.length) clearInterval(interval); }, 50);
+        function updatePing() {
+            const ping = Math.floor(Math.random() * 20) + 15;
+            document.getElementById('ping-val').innerText = ping + "ms";
         }
+        function addLog(msg, type="normal") {
+            const logBox = document.getElementById('system-logs');
+            const div = document.createElement('div');
+            div.className = 'log-entry ' + (type === 'err' ? 'log-err' : (type === 'warn' ? 'log-warn' : ''));
+            div.innerText = `[${new Date().toLocaleTimeString().split(' ')[0]}] ${msg}`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+        function startFakeLogs() {
+            const phrases = ["Scanning ports...", "Optimizing neural net...", "Encrypting traffic...", "Ping check OK", "Updating hash table..."];
+            setInterval(() => {
+                if(Math.random() > 0.7) {
+                    addLog(phrases[Math.floor(Math.random() * phrases.length)]);
+                }
+            }, 3000);
+        }
+        
+        // AUDIO
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            document.getElementById('audio-toggle').innerText = `[ SOUND: ${audioEnabled ? 'ON' : 'OFF'} ]`;
+        }
+        function playSound(id) {
+            if(!audioEnabled) return;
+            const audio = document.getElementById('sfx-' + id);
+            if(audio) { audio.currentTime = 0; audio.play().catch(e=>{}); }
+        }
+
+        // --- 4. CANVAS BACKGROUND (Neural Net) ---
+        function initCanvas() {
+            const canvas = document.getElementById('neural-net');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            let particles = [];
+            for(let i=0; i<60; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 1,
+                    vy: (Math.random() - 0.5) * 1
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#00f3ff';
+                ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
+                
+                particles.forEach((p, i) => {
+                    p.x += p.vx; p.y += p.vy;
+                    if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                    if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                    
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Connect lines
+                    for(let j=i; j<particles.length; j++) {
+                        const dx = particles[j].x - p.x;
+                        const dy = particles[j].y - p.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if(dist < 150) {
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+            
+            window.onresize = () => {
+                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            };
+        }
+        
+        // RADAR ANIMATION KEYFRAMES
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `
+            @keyframes radar { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        `;
+        document.head.appendChild(styleSheet);
     </script>
 </body>
 </html>
