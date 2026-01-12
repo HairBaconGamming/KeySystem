@@ -47,7 +47,7 @@ const SessionSchema = new mongoose.Schema({
     // THAY ĐỔI: Dùng biến đếm số bước thay vì verified boolean
     currentStep: { type: Number, default: 0 }, 
     
-    createdAt: { type: Date, default: Date.now, expires: 1800 } // 30 phút
+    createdAt: { type: Date, default: Date.now, expires: 3600 } // 30 phút
 });
 
 const UserModel = mongoose.model('User', UserSchema);
