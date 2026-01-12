@@ -3,27 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAIRKEY /// TITAN PROTOCOL</title>
+    <title>HAIRKEY /// VOID WALKER</title>
     
     <!-- FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CLOUDFLARE TURNSTILE -->
+    <!-- CLOUDFLARE -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
     <style>
-        /* === SYSTEM VARIABLES === */
+        /* =========================================
+           1. CORE VARIABLES & RESET
+           ========================================= */
         :root {
-            --bg-void: #020202;
-            --panel-dark: #0a0a0c;
+            --bg-void: #030305;
+            --panel-bg: rgba(10, 12, 16, 0.85);
             --neon-cyan: #00f3ff;
             --neon-purple: #bc13fe;
-            --alert-red: #ff003c;
-            --matrix-green: #00ff41;
-            --font-main: 'Fira Code', monospace;
-            --font-head: 'Orbitron', sans-serif;
+            --neon-green: #00ff9d;
+            --neon-red: #ff003c;
+            --border-dim: rgba(0, 243, 255, 0.15);
+            --font-head: 'Audiowide', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
@@ -31,365 +34,528 @@
         body {
             background-color: var(--bg-void);
             color: var(--neon-cyan);
-            font-family: var(--font-main);
+            font-family: var(--font-code);
             height: 100vh; overflow: hidden;
             display: flex; justify-content: center; align-items: center;
+            /* 3D removed per request */
         }
 
-        /* === VISUAL FX === */
+        /* =========================================
+           2. BACKGROUND FX
+           ========================================= */
+        #void-network {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0; opacity: 0.2;
+        }
+
         .scanlines {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
                         linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 2px, 3px 100%; z-index: 10; pointer-events: none;
+            background-size: 100% 3px, 3px 100%;
+            z-index: 2; pointer-events: none;
         }
-        
-        .noise-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('https://raw.githubusercontent.com/HairBaconGamming/KeySystem/main/assets/noise.png'); 
-            opacity: 0.05; z-index: 1; pointer-events: none; animation: noise 0.5s steps(5) infinite;
-        }
-        @keyframes noise { 0% { background-position: 0 0; } 100% { background-position: 100% 100%; } }
 
-        /* === MAIN CARD === */
-        .cyber-card {
-            width: 100%; max-width: 500px;
-            background: rgba(10, 10, 12, 0.95);
-            border: 1px solid #333;
-            box-shadow: 0 0 40px rgba(0, 243, 255, 0.1);
-            position: relative; z-index: 5;
-            padding: 2px;
-            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+        .vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 40%, #000 100%);
+            z-index: 1; pointer-events: none;
+        }
+
+        /* =========================================
+           3. MAIN INTERFACE (FLAT & SHARP)
+           ========================================= */
+        .void-card {
+            width: 520px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-dim);
+            position: relative; z-index: 10;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+            /* Tech Corners Shape */
+            clip-path: polygon(
+                20px 0, 100% 0, 
+                100% calc(100% - 20px), calc(100% - 20px) 100%, 
+                0 100%, 0 20px
+            );
+            padding: 2px; /* Border container */
+        }
+
+        /* Animated Glowing Border */
+        .void-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--neon-cyan), transparent 40%, transparent 60%, var(--neon-purple));
+            z-index: -1; opacity: 0.5;
         }
 
         .inner-content {
-            background: var(--panel-dark);
-            padding: 30px;
-            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+            background: #080a0e;
+            padding: 35px;
+            clip-path: polygon(
+                20px 0, 100% 0, 
+                100% calc(100% - 20px), calc(100% - 20px) 100%, 
+                0 100%, 0 20px
+            );
+            min-height: 400px;
+            display: flex; flex-direction: column;
         }
 
-        /* HEADER */
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid rgba(0, 243, 255, 0.2); padding-bottom: 20px; }
-        h1 { font-family: var(--font-head); font-size: 2rem; letter-spacing: 4px; color: #fff; text-shadow: 0 0 10px var(--neon-cyan); margin-bottom: 5px; }
-        .sub { font-size: 0.8rem; color: #666; letter-spacing: 2px; }
+        /* =========================================
+           4. UI COMPONENTS
+           ========================================= */
+        /* Header */
+        .header-section {
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 15px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+        }
+        h1 { 
+            font-family: var(--font-head); font-size: 2rem; 
+            letter-spacing: 2px; color: #fff; margin: 0;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+        .version { font-size: 0.7rem; color: #666; letter-spacing: 1px; }
+        
+        .sys-status { display: flex; gap: 5px; align-items: center; font-size: 0.65rem; color: var(--neon-green); }
+        .blink-dot { width: 6px; height: 6px; background: var(--neon-green); border-radius: 50%; animation: blink 1s infinite; }
 
-        /* STATUS BADGE */
-        .status-box {
+        /* Terminal Logs */
+        .console-box {
+            background: #020202;
+            border: 1px solid #222;
+            height: 100px; padding: 10px;
+            overflow: hidden;
+            font-size: 0.7rem; color: #888;
+            margin-bottom: 25px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+        .log-entry { margin-bottom: 4px; display: flex; }
+        .log-time { color: #444; margin-right: 8px; }
+        .log-msg { color: #aaa; }
+        .c-warn { color: var(--neon-purple); }
+        .c-err { color: var(--neon-red); }
+        .c-succ { color: var(--neon-green); }
+
+        /* Action Zone */
+        .action-zone { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+        /* Status Badge */
+        .status-display {
+            font-family: var(--font-head);
+            font-size: 0.9rem; letter-spacing: 2px;
+            padding: 8px 20px; border: 1px solid var(--neon-cyan);
             background: rgba(0, 243, 255, 0.05);
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+        }
+
+        /* Buttons */
+        .void-btn {
+            width: 100%; max-width: 300px;
+            padding: 16px; background: transparent;
             border: 1px solid var(--neon-cyan);
-            padding: 15px; margin-bottom: 20px;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: var(--neon-cyan);
+            font-family: var(--font-head); letter-spacing: 2px;
+            cursor: pointer; transition: 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .void-btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: var(--neon-cyan); transition: 0.3s; z-index: -1;
+        }
+        .void-btn:hover { color: #000; box-shadow: 0 0 20px var(--neon-cyan); }
+        .void-btn:hover::before { left: 0; }
+        .void-btn:disabled { border-color: #444; color: #444; cursor: not-allowed; box-shadow: none; }
+        .void-btn:disabled::before { display: none; }
+
+        /* Key Vault */
+        .key-container {
+            width: 100%; text-align: center;
+            background: rgba(0, 255, 157, 0.03);
+            border: 1px dashed var(--neon-green);
+            padding: 25px; cursor: pointer;
+            position: relative;
             transition: 0.3s;
         }
-        .status-dot { width: 8px; height: 8px; background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); animation: pulse 1s infinite; }
-        @keyframes pulse { 50% { opacity: 0.5; } }
-
-        /* ACTION BUTTONS */
-        .cyber-btn {
-            width: 100%; padding: 18px; margin-top: 15px;
-            background: transparent; color: var(--neon-cyan);
-            border: 1px solid var(--neon-cyan);
-            font-family: var(--font-head); font-weight: 700; letter-spacing: 2px;
-            cursor: pointer; position: relative; overflow: hidden;
-            transition: 0.3s; text-transform: uppercase;
-        }
-        .cyber-btn:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 30px var(--neon-cyan); }
-        .cyber-btn:disabled { border-color: #444; color: #444; cursor: not-allowed; box-shadow: none; background: transparent; }
+        .key-container:hover { background: rgba(0, 255, 157, 0.08); border-style: solid; }
         
-        .cyber-btn.processing {
-            border-color: var(--neon-purple); color: var(--neon-purple);
-            animation: borderPulse 1s infinite;
+        .key-text {
+            font-size: 1.6rem; color: var(--neon-green);
+            text-shadow: 0 0 8px rgba(0, 255, 157, 0.6);
+            word-break: break-all; font-weight: bold;
         }
-        @keyframes borderPulse { 50% { border-color: transparent; } }
-
-        /* KEY DISPLAY */
-        .key-vault {
-            background: #000; border: 1px dashed var(--matrix-green);
-            padding: 20px; text-align: center; cursor: pointer;
-            margin-top: 20px; position: relative;
+        
+        /* Time Duration */
+        .time-box {
+            margin-top: 15px; font-size: 0.8rem;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            color: #ccc;
         }
-        .key-text { font-size: 1.5rem; color: var(--matrix-green); word-break: break-all; text-shadow: 0 0 5px var(--matrix-green); }
-        .key-vault:hover { background: rgba(0, 255, 65, 0.1); }
+        .time-val { color: var(--neon-cyan); font-weight: bold; font-size: 1rem; }
 
-        /* UTILS */
+        /* Turnstile */
+        #turnstile-wrapper { min-height: 65px; margin-bottom: 15px; display: flex; justify-content: center; }
+
+        /* Animations */
         .hidden { display: none !important; }
-        .text-err { color: var(--alert-red); }
-        .text-warn { color: var(--neon-purple); }
-        
-        /* LOGS */
-        #term-log {
-            font-size: 0.7rem; color: #555; margin-top: 20px; height: 80px; overflow-y: auto;
-            border-top: 1px solid #222; padding-top: 10px;
-        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
     </style>
 </head>
 <body>
 
+    <canvas id="void-network"></canvas>
     <div class="scanlines"></div>
-    <div class="noise-bg"></div>
+    <div class="vignette"></div>
 
-    <div class="cyber-card">
+    <div class="void-card">
         <div class="inner-content">
             
-            <div class="header">
-                <h1>HAIRKEY</h1>
-                <div class="sub">TITAN PROTOCOL v5.2 // SECURE</div>
+            <!-- HEADER -->
+            <div class="header-section">
+                <div>
+                    <h1>HAIRKEY</h1>
+                    <div class="version">VOID WALKER PROTOCOL // v6.0</div>
+                </div>
+                <div class="sys-status">
+                    <div class="blink-dot"></div> NET_ONLINE
+                </div>
             </div>
 
-            <!-- VIEW: CHECKPOINT / EXPIRED -->
-            <div id="view-checkpoint">
-                <div class="status-box" id="status-box">
-                    <div class="status-dot"></div>
-                    <span id="status-text">SYSTEM STANDBY</span>
-                </div>
-
-                <div id="turnstile-box" style="display: flex; justify-content: center; margin: 15px 0; min-height: 65px;"></div>
-
-                <button id="btn-action" class="cyber-btn" onclick="handleAction()" disabled>
-                    <i class="fas fa-lock"></i> INITIALIZE
-                </button>
+            <!-- LOGS -->
+            <div class="console-box" id="console">
+                <!-- Logs will be injected here -->
             </div>
 
-            <!-- VIEW: SUCCESS / KEY -->
-            <div id="view-success" class="hidden">
-                <div class="status-box" style="border-color: var(--matrix-green);">
-                    <div class="status-dot" style="background: var(--matrix-green); box-shadow: 0 0 10px var(--matrix-green);"></div>
-                    <span style="color: var(--matrix-green);">ACCESS GRANTED</span>
-                </div>
+            <!-- MAIN ACTION -->
+            <div class="action-zone">
                 
-                <div class="key-vault" onclick="copyKey()">
-                    <div id="final-key" class="key-text">DECRYPTING...</div>
-                    <div style="font-size: 0.6rem; color: #666; margin-top: 5px;">CLICK TO COPY</div>
-                </div>
-            </div>
+                <!-- STATE: CHECKPOINT -->
+                <div id="view-checkpoint" style="width: 100%; text-align: center;">
+                    <div id="status-badge" class="status-display">SECURITY CHECK REQUIRED</div>
+                    
+                    <div id="turnstile-wrapper"></div>
 
-            <!-- TERMINAL LOGS -->
-            <div id="term-log">
-                > SYSTEM READY.<br>
-                > WAITING FOR USER INPUT...
+                    <button id="btn-main" class="void-btn" onclick="handleAction()" disabled>
+                        <i class="fas fa-shield-alt"></i> INITIALIZE
+                    </button>
+                </div>
+
+                <!-- STATE: SUCCESS -->
+                <div id="view-success" class="hidden" style="width: 100%;">
+                    <div class="status-display" style="border-color: var(--neon-green); color: var(--neon-green); width: 100%; text-align: center;">
+                        <i class="fas fa-check-circle"></i> ACCESS GRANTED
+                    </div>
+
+                    <div class="key-container" onclick="copyKey()">
+                        <div id="key-output" class="key-text">LOADING...</div>
+                        <div style="font-size: 0.6rem; color: #666; margin-top: 5px; letter-spacing: 2px;">CLICK TO COPY</div>
+                    </div>
+
+                    <div class="time-box">
+                        <i class="far fa-clock"></i> SESSION EXPIRES IN: 
+                        <span id="timer-val" class="time-val">--:--:--</span>
+                    </div>
+                </div>
+
             </div>
 
         </div>
     </div>
 
-    <!-- AUDIO -->
-    <audio id="sfx-hover" src="https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3"></audio>
-    <audio id="sfx-click" src="https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3"></audio>
-    <audio id="sfx-success" src="https://assets.mixkit.co/active_storage/sfx/2197/2197-preview.mp3"></audio>
-
     <script>
-        // === CONFIG ===
-        const CLOUDFLARE_SITE_KEY = "YOUR_CLOUDFLARE_SITE_KEY_HERE"; // <--- THAY SITE KEY CỦA BẠN
-        
-        // API ENDPOINTS
-        const API = {
-            PROFILE: '/api/profile',
-            START: '/api/start-process',
-            VERIFY_STEP: '/api/verify-step', 
-            COMPLETE: '/api/complete-process'
+        // ==========================================
+        // CONFIGURATION
+        // ==========================================
+        const CONFIG = {
+            CLOUDFLARE_SITE_KEY: "0x4AAAAAABBLlduN6HavujOQ", 
+            API: {
+                PROFILE: '/api/profile',
+                START: '/api/start-process',
+                VERIFY: '/api/verify-step',
+                COMPLETE: '/api/complete-process'
+            }
         };
 
-        // STATE
-        let sessionId = null;
-        let cfToken = null;
+        // GLOBAL STATE
+        let STATE = {
+            sessionId: null,
+            cfToken: null,
+            currentStep: 0,
+            totalSteps: 1
+        };
 
-        // --- CORE LOGIC ---
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
         window.onload = async () => {
+            initBackground(); // Void Network FX
+            logSystem("KERNEL", "Initializing HairKey Interface v6.0...");
+            
             const urlParams = new URLSearchParams(window.location.search);
-            sessionId = urlParams.get('id');
+            STATE.sessionId = urlParams.get('id');
             const verifyToken = urlParams.get('verify_token');
 
-            // 1. VERIFY TOKEN (Fix lỗi quay lại checkpoint 1)
+            // 1. HANDLE VERIFY RETURN
             if (verifyToken) {
-                log("DETECTED RETURN SIGNAL. VERIFYING...", "warn");
-                setStatus("VERIFYING STEP...", "var(--neon-purple)");
-                setLoading(true, "VERIFYING...");
+                logSystem("NET", "Verify token detected. Validating...");
+                setLoading(true, "VERIFYING STEP...");
                 
                 try {
-                    const res = await fetch(API.VERIFY_STEP, {
+                    const res = await fetch(CONFIG.API.VERIFY, {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ sessionId, token: verifyToken })
+                        body: JSON.stringify({ sessionId: STATE.sessionId, token: verifyToken })
                     });
                     const data = await res.json();
                     
                     if (data.success) {
-                        log("STEP VERIFIED. UPDATING PROTOCOLS...", "success");
-                        playSfx('success');
-                        // Xóa token khỏi URL
-                        window.history.replaceState({}, document.title, `/?id=${sessionId}`);
+                        logSystem("SEC", "Step verified successfully.", "succ");
+                        window.history.replaceState({}, document.title, `/?id=${STATE.sessionId}`);
                     } else {
-                        log("TOKEN REJECTED: " + data.error, "err");
-                        setStatus("VERIFICATION FAILED", "var(--alert-red)");
+                        logSystem("ERR", "Token rejected: " + data.error, "err");
+                        setStatus("VERIFICATION FAILED", "var(--neon-red)");
                     }
-                } catch (e) { 
-                    log("CONNECTION ERROR DURING VERIFY", "err"); 
-                }
+                } catch(e) { logSystem("ERR", "Connection failure during verify", "err"); }
                 
-                setLoading(false); 
+                setLoading(false);
             }
 
             // 2. LOAD PROFILE
-            if (sessionId) {
+            if (STATE.sessionId) {
                 await loadProfile();
             } else {
-                log("FATAL: MISSING SESSION ID", "err");
-                document.querySelector('.cyber-card').innerHTML = `<h2 style='text-align:center;color:red'>INVALID LINK</h2><p style='text-align:center'>Please use the script to generate a link.</p>`;
+                logSystem("FATAL", "Missing Session ID.", "err");
+                document.querySelector('.action-zone').innerHTML = `<h3 style="color:var(--neon-red)">LINK EXPIRED OR INVALID</h3>`;
             }
         };
 
+        // ==========================================
+        // CORE LOGIC
+        // ==========================================
         async function loadProfile() {
+            logSystem("NET", "Fetching user profile...");
             try {
-                const res = await fetch(API.PROFILE, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
+                const res = await fetch(CONFIG.API.PROFILE, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId: STATE.sessionId })
                 });
                 const data = await res.json();
 
                 if (data.success) {
-                    log("PROFILE LOADED. HWID: " + data.hwidShort);
-                    
+                    logSystem("AUTH", `User Identified: ${data.hwidShort}`, "succ");
+                    STATE.currentStep = data.currentStep || 0;
+                    STATE.totalSteps = data.totalSteps || 1;
+
                     if (data.keyStatus === "ACTIVE") {
-                        showSuccess(data.currentKey);
+                        showSuccess(data.currentKey, data.timeLeft);
                     } else {
-                        // FIX BUG 3/2: Kiểm tra nếu đã đủ bước thì lấy Key luôn
-                        if (data.currentStep >= data.totalSteps) {
-                            log("ALL CHECKPOINTS CLEARED. GENERATING KEY...", "success");
+                        if (STATE.currentStep >= STATE.totalSteps) {
+                            logSystem("SYS", "All steps cleared. Requesting key...", "succ");
                             await checkCompletion();
                         } else {
-                            // Nếu chưa đủ bước, hiện checkpoint tiếp theo
-                            setupCheckpoint(data.currentStep, data.totalSteps);
+                            setupCheckpoint();
                         }
                     }
                 } else {
-                    await checkCompletion(); 
+                    await checkCompletion(); // Last ditch attempt
                 }
-            } catch (e) { log("PROFILE LOAD ERROR", "err"); }
+            } catch (e) { logSystem("ERR", "Failed to load profile", "err"); }
         }
 
-        function setupCheckpoint(step, total) {
-            const displayStep = step + 1;
-            const btn = document.getElementById('btn-action');
+        function setupCheckpoint() {
+            const displayStep = STATE.currentStep + 1;
+            const total = STATE.totalSteps;
+            const btn = document.getElementById('btn-main');
             
-            // Cập nhật trạng thái
             setStatus(total > 1 ? `CHECKPOINT ${displayStep} / ${total}` : "SECURITY CHECK", "var(--neon-cyan)");
-            log(`AWAITING COMPLETION OF CHECKPOINT ${displayStep}...`);
+            logSystem("SYS", `Initiating Checkpoint ${displayStep}...`);
 
-            // Reset nút bấm
-            btn.innerHTML = `<i class="fas fa-lock"></i> WAIT FOR CAPTCHA`;
+            // Reset Button
+            btn.innerHTML = `<i class="fas fa-lock"></i> AWAITING CAPTCHA`;
             btn.disabled = true;
-            btn.classList.remove('processing');
 
-            // Render Turnstile
-            document.getElementById('turnstile-box').innerHTML = "";
-            turnstile.render('#turnstile-box', {
-                sitekey: CLOUDFLARE_SITE_KEY,
+            // Render Cloudflare
+            document.getElementById('turnstile-wrapper').innerHTML = "";
+            turnstile.render('#turnstile-wrapper', {
+                sitekey: CONFIG.CLOUDFLARE_SITE_KEY,
                 theme: 'dark',
                 callback: function(token) {
-                    cfToken = token;
+                    STATE.cfToken = token;
                     btn.disabled = false;
                     btn.innerHTML = `<i class="fas fa-bolt"></i> CONTINUE`;
-                    btn.style.boxShadow = "0 0 20px var(--neon-cyan)";
-                    playSfx('hover');
-                    log("CAPTCHA SOLVED. READY.");
+                    btn.style.borderColor = "var(--neon-green)";
+                    btn.style.color = "var(--neon-green)";
+                    logSystem("SEC", "Human verification passed.", "succ");
                 }
             });
         }
 
         async function handleAction() {
-            if(!cfToken) return;
-            playSfx('click');
-            setLoading(true, "GENERATING SECURE LINK...");
+            if(!STATE.cfToken) return;
+            setLoading(true, "GENERATING LINK...");
             
             try {
-                const res = await fetch(API.START, {
+                const res = await fetch(CONFIG.API.START, {
                     method: 'POST', headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ sessionId, cfToken })
+                    body: JSON.stringify({ sessionId: STATE.sessionId, cfToken: STATE.cfToken })
                 });
                 const data = await res.json();
                 
                 if(data.success) {
-                    log("LINK GENERATED. REDIRECTING...");
+                    logSystem("NET", "Link generated. Redirecting...", "warn");
                     window.location.href = data.link; 
                 } else {
-                    log("ERROR: " + data.error, "err");
-                    setStatus("ERROR: " + data.error, "var(--alert-red)");
+                    logSystem("ERR", data.error, "err");
+                    setStatus("ERROR: " + data.error, "var(--neon-red)");
                     setTimeout(() => window.location.reload(), 2000);
                 }
             } catch(e) {
-                log("NETWORK ERROR", "err");
+                logSystem("ERR", "Network Error", "err");
                 setLoading(false);
             }
         }
 
         async function checkCompletion() {
-            const res = await fetch(API.COMPLETE, {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
+            const res = await fetch(CONFIG.API.COMPLETE, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId: STATE.sessionId })
             });
             const data = await res.json();
             
             if(data.success) {
-                showSuccess(data.key);
+                // Key generated fresh, assume 24h or get from server logic if possible
+                // Since this API usually returns key, we assume standard expiry. 
+                // Better to reload profile to get exact time, but here we can estimate.
+                showSuccess(data.key, 86400); 
             } else {
                 if (data.refresh) {
                     window.location.reload();
                 } else {
-                    log("SESSION EXPIRED OR INVALID.", "err");
-                    setStatus("SESSION EXPIRED", "var(--alert-red)");
+                    logSystem("ERR", "Session invalid. Please restart script.", "err");
+                    setStatus("SESSION EXPIRED", "var(--neon-red)");
                 }
             }
         }
 
-        function showSuccess(key) {
+        function showSuccess(key, timeLeft) {
             document.getElementById('view-checkpoint').classList.add('hidden');
             document.getElementById('view-success').classList.remove('hidden');
-            playSfx('success');
             
-            const el = document.getElementById('final-key');
-            el.innerText = key;
-            log("KEY DECRYPTED SUCCESSFULLY.");
+            // Text Scramble Effect for Key
+            const el = document.getElementById('key-output');
+            let iterations = 0;
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            const interval = setInterval(() => {
+                el.innerText = key.split("").map((letter, index) => {
+                    if(index < iterations) return key[index];
+                    return chars[Math.floor(Math.random() * chars.length)];
+                }).join("");
+                if(iterations >= key.length) clearInterval(interval);
+                iterations += 1/2;
+            }, 30);
+
+            logSystem("CRYPTO", "Key decrypted successfully.", "succ");
+            startTimer(timeLeft);
+        }
+
+        function startTimer(seconds) {
+            const timerEl = document.getElementById('timer-val');
+            
+            function update() {
+                if (seconds <= 0) {
+                    timerEl.innerText = "EXPIRED";
+                    timerEl.style.color = "var(--neon-red)";
+                    return;
+                }
+                seconds--;
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = seconds % 60;
+                timerEl.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            }
+            update();
+            setInterval(update, 1000);
         }
 
         function copyKey() {
-            playSfx('click');
-            const k = document.getElementById('final-key').innerText;
+            const k = document.getElementById('key-output').innerText;
             navigator.clipboard.writeText(k);
-            log("COPIED TO CLIPBOARD.");
-            alert("KEY COPIED!");
+            logSystem("SYS", "Key copied to clipboard.", "succ");
+            alert("COPIED!");
         }
 
-        // --- UTILS ---
-        function log(msg, type="norm") {
-            const box = document.getElementById('term-log');
-            const color = type == "err" ? "var(--alert-red)" : (type=="success" ? "var(--matrix-green)" : (type=="warn" ? "var(--neon-purple)" : "#777"));
-            box.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
+        // ==========================================
+        // UTILS & FX
+        // ==========================================
+        function logSystem(module, msg, type="info") {
+            const box = document.getElementById('console');
+            const time = new Date().toLocaleTimeString('en-GB');
+            const colorClass = type === 'err' ? 'c-err' : (type === 'succ' ? 'c-succ' : (type === 'warn' ? 'c-warn' : ''));
+            
+            const html = `
+                <div class="log-entry">
+                    <span class="log-time">[${time}]</span>
+                    <span class="log-module">[${module}]</span>&nbsp;
+                    <span class="log-msg ${colorClass}">${msg}</span>
+                </div>`;
+            
+            box.insertAdjacentHTML('beforeend', html);
             box.scrollTop = box.scrollHeight;
         }
 
         function setStatus(text, color) {
-            const box = document.getElementById('status-box');
-            const txt = document.getElementById('status-text');
-            const dot = document.querySelector('.status-dot');
-            
-            txt.innerText = text;
-            txt.style.color = color;
-            box.style.borderColor = color;
-            dot.style.background = color;
-            dot.style.boxShadow = `0 0 10px ${color}`;
+            const badge = document.getElementById('status-badge');
+            badge.innerText = text;
+            badge.style.color = color;
+            badge.style.borderColor = color;
+            badge.style.boxShadow = `0 0 15px ${color}33`;
         }
 
         function setLoading(isLoading, text) {
-            const btn = document.getElementById('btn-action');
+            const btn = document.getElementById('btn-main');
             if(isLoading) {
-                btn.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${text}`;
-                btn.classList.add('processing');
+                btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> ${text}`;
                 btn.disabled = true;
-            } else {
-                btn.classList.remove('processing');
+                btn.style.color = "var(--neon-purple)";
+                btn.style.borderColor = "var(--neon-purple)";
             }
         }
 
-        function playSfx(id) {
-            const audio = document.getElementById('sfx-'+id);
-            if(audio) { audio.currentTime=0; audio.play().catch(()=>{}); }
+        // Background Animation (Void Network)
+        function initBackground() {
+            const canvas = document.getElementById('void-network');
+            const ctx = canvas.getContext('2d');
+            let w, h, particles = [];
+
+            function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+            window.addEventListener('resize', resize); resize();
+
+            for(let i=0; i<50; i++) particles.push({
+                x: Math.random()*w, y: Math.random()*h,
+                vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5
+            });
+
+            function animate() {
+                ctx.clearRect(0,0,w,h);
+                ctx.fillStyle = '#00f3ff';
+                
+                particles.forEach((p, i) => {
+                    p.x += p.vx; p.y += p.vy;
+                    if(p.x<0 || p.x>w) p.vx*=-1; if(p.y<0 || p.y>h) p.vy*=-1;
+                    
+                    ctx.beginPath(); ctx.arc(p.x, p.y, 1.5, 0, Math.PI*2); ctx.fill();
+                    
+                    particles.slice(i+1).forEach(p2 => {
+                        const d = Math.hypot(p.x-p2.x, p.y-p2.y);
+                        if(d<150) {
+                            ctx.beginPath(); 
+                            ctx.strokeStyle = `rgba(0, 243, 255, ${1 - d/150})`; 
+                            ctx.lineWidth = 0.5;
+                            ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+                        }
+                    });
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
         }
     </script>
 </body>

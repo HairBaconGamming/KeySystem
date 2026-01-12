@@ -576,6 +576,7 @@ function HairKey.init(config)
                 VFX.Tween(MainFrame, 0.5, {Size = UDim2.new(0, 500, 0, 0), Position = UDim2.new(0.5, -250, 0.5, 0)})
                 task.wait(0.5)
                 MainFrame.Visible = false
+                if UI.Screen then UI.Screen:Destroy() end
                 OnKeyCorrect()
             else
                 UI.Notify("ACCESS DENIED: INVALID KEY", "ERR")
@@ -622,6 +623,8 @@ function HairKey.init(config)
             local data = HttpService:JSONDecode(res.Body)
             if data.valid then
                 UI.Notify("AUTO_LOGIN: SUCCESS", "SUCCESS")
+                task.wait(1) -- Đợi 1 chút cho thông báo hiện xong (tùy chọn)
+                if UI.Screen then UI.Screen:Destroy() end
                 OnKeyCorrect()
                 return
             end
