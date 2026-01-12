@@ -8,15 +8,13 @@
     //           ██║  ██║██║  ██║██║██║  ██║██║  ██╗███████╗   ██║                                   //
     //           ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝   ╚═╝                                   //
     //                                                                                               //
-    //      HAIRKEY CLIENT - TITAN PRO MAX ULTRA (v5.0)                                              //
-    //      "Beyond The Absolute Zenith"                                                             //
+    //      HAIRKEY CLIENT - TITAN PRO MAX ULTRA (v5.1)                                              //
+    //      "Matrix Protocol Edition"                                                                //
     //                                                                                               //
-    //      [CHANGELOG v5.0]                                                                         //
-    //      + CRITICAL FIX: Notification text visibility issues resolved (ZIndex/Contrast)           //
-    //      + NEW: "Void Tech" Aesthetic (Deep Black + Hyper Cyan)                                   //
-    //      + NEW: Holographic Corner Borders                                                        //
-    //      + NEW: Notification Progress Bar                                                         //
-    //      + OPTIMIZATION: Reduced memory leaks in Particle Engine                                  //
+    //      [CHANGELOG v5.1]                                                                         //
+    //      + FIXED: Connection Failed (0) - Added detailed error logging                            //
+    //      + STYLE: Matrix Hacking Theme (Green/Black)                                              //
+    //      + VFX: Particles changed to Random Code Characters (0, 1, X, Z)                          //
     //                                                                                               //
     //      [AUTHOR] HairKey Development Team                                                        //
     //                                                                                               //
@@ -52,35 +50,34 @@ local CFG = {
 
     -- [System]
     AppName = "TITAN PROTOCOL",
-    Version = "5.0.0-ULTRA",
+    Version = "5.1.0-MATRIX",
     FileName = "HairKey_Auth_V5.bin",
     EncryptionKey = "TITAN_ULTRA_SECRET_KEY_2026",
 
-    -- [Visuals - HIGH CONTRAST MODE]
+    -- [Visuals - HACKER MODE]
     Theme = {
-        Background = Color3.fromRGB(5, 5, 5),       -- Pure Void
-        Panel = Color3.fromRGB(10, 10, 12),         -- Dark Slate
-        PanelBorder = Color3.fromRGB(40, 40, 50),
+        Background = Color3.fromRGB(0, 5, 0),       -- Matrix Black
+        Panel = Color3.fromRGB(5, 15, 5),           -- Dark Terminal Green
+        PanelBorder = Color3.fromRGB(0, 50, 0),
         
-        Primary = Color3.fromRGB(0, 255, 200),      -- Hyper Cyan
-        Secondary = Color3.fromRGB(140, 0, 255),    -- Deep Purple
+        Primary = Color3.fromRGB(0, 255, 70),       -- Terminal Green
+        Secondary = Color3.fromRGB(150, 255, 150),  -- Pale Green
         
-        Text = Color3.fromRGB(255, 255, 255),       -- Pure White
-        TextDim = Color3.fromRGB(120, 120, 140),    -- Grey
+        Text = Color3.fromRGB(200, 255, 200),       -- Light Green Text
+        TextDim = Color3.fromRGB(50, 100, 50),      -- Dim Green
         
-        Success = Color3.fromRGB(0, 255, 100),      -- Green
-        Error = Color3.fromRGB(255, 50, 80),        -- Red Pink
-        Warning = Color3.fromRGB(255, 220, 50)      -- Yellow
+        Success = Color3.fromRGB(0, 255, 0),        -- Pure Green
+        Error = Color3.fromRGB(255, 50, 50),        -- Error Red
+        Warning = Color3.fromRGB(255, 200, 0)       -- Warning Yellow
     },
     
     -- [Assets]
     Assets = {
-        Font = Enum.Font.GothamMedium,
-        HeaderFont = Enum.Font.GothamBlack,
+        Font = Enum.Font.Code,          -- Hacking Font
+        HeaderFont = Enum.Font.Code,    -- Hacking Font
         CodeFont = Enum.Font.Code,
         GridTexture = "rbxassetid://6071575925",
         NoiseTexture = "rbxassetid://16440628399",
-        Gradient = "rbxassetid://7011962991",
         Icons = {
             Key = "rbxassetid://13853153610",
             Close = "rbxassetid://3926305904",
@@ -107,7 +104,7 @@ local Logger = {}
 function Logger.Print(msg, level)
     local prefix = "[HAIRKEY]"
     local timestamp = os.date("%H:%M:%S")
-    local color = "@@CYAN@@"
+    local color = "@@GREEN@@" -- Hacker style log
     
     if level == "WARN" then color = "@@YELLOW@@"
     elseif level == "ERR" then color = "@@RED@@"
@@ -158,20 +155,23 @@ function Crypt.Load()
 end
 
 -- ==================================================================================================
--- [5] UTILITIES: NETWORK
+-- [5] UTILITIES: NETWORK (DEBUGGED)
 -- ==================================================================================================
 local Network = {}
 
 function Network.Request(url, method, body)
+    -- Auto-detect request function
     local requestFunc = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
     
     if not requestFunc then
+        warn("[HAIRKEY] CRITICAL: No HTTP Request function found! Your executor might not support this.")
         return {Body = nil, StatusCode = 0}
     end
 
     local attempts = 0
     local response
     local success
+    local errMessage
 
     repeat
         attempts = attempts + 1
@@ -186,10 +186,20 @@ function Network.Request(url, method, body)
                 Body = body and HttpService:JSONEncode(body) or nil
             })
         end)
-        if not success then task.wait(0.5) end
+        
+        if not success then
+            errMessage = response -- pcall returns error message in 2nd arg if failed
+            warn("[HAIRKEY] Request Failed (Attempt "..attempts.."): " .. tostring(errMessage))
+            task.wait(0.5)
+        end
     until (success and response) or attempts >= CFG.MaxRetries
 
-    return success and response or {Body = nil, StatusCode = 0} 
+    if not success then
+        warn("[HAIRKEY] Final Error: " .. tostring(errMessage))
+        return {Body = nil, StatusCode = 0, StatusMessage = tostring(errMessage)} 
+    end
+
+    return response
 end
 
 -- ==================================================================================================
@@ -218,10 +228,10 @@ function VFX.Tween(obj, info, props)
     return t
 end
 
--- [PARTICLE SYSTEM V2 - MEMORY OPTIMIZED]
+-- [MATRIX CHARACTERS ENGINE]
 function VFX.SpawnParticles(parent, count)
     local container = Instance.new("Frame")
-    container.Name = "FX_Particles"
+    container.Name = "FX_Matrix"
     container.BackgroundTransparency = 1
     container.Size = UDim2.new(1, 0, 1, 0)
     container.ZIndex = 1
@@ -230,31 +240,45 @@ function VFX.SpawnParticles(parent, count)
     if VFX.Connections[parent] then VFX.Connections[parent]:Disconnect() end
 
     local particles = {}
+    local chars = {"0", "1", "X", "Z", "Ø", "§", "∆", "¥"}
+    
     for i = 1, count do
-        local p = Instance.new("Frame")
-        p.BorderSizePixel = 0
-        p.BackgroundColor3 = CFG.Theme.Primary
-        p.Size = UDim2.new(0, math.random(1, 3), 0, math.random(1, 3))
+        local p = Instance.new("TextLabel")
+        p.BackgroundTransparency = 1
+        p.TextColor3 = CFG.Theme.Primary
+        p.TextSize = math.random(10, 18)
+        p.Font = Enum.Font.Code
+        p.Text = chars[math.random(1, #chars)]
+        p.Size = UDim2.new(0, 20, 0, 20)
         p.Position = UDim2.new(math.random(), 0, math.random(), 0)
-        p.BackgroundTransparency = math.random(0.4, 0.9)
+        p.TextTransparency = math.random(0.3, 0.8)
         p.Parent = container
+        
         table.insert(particles, {
             Obj = p,
-            Speed = math.random(5, 15),
-            Drift = math.random(-5, 5)
+            Speed = math.random(2, 8), -- Falling speed
+            ChangeRate = math.random(5, 20)
         })
     end
     
+    local tickCount = 0
     VFX.Connections[parent] = RunService.RenderStepped:Connect(function(dt)
+        tickCount = tickCount + 1
         for _, p in ipairs(particles) do
             local pos = p.Obj.Position
-            local newY = pos.Y.Scale - (p.Speed * 0.005 * dt * 60)
-            local newX = pos.X.Scale + (p.Drift * 0.0005 * dt * 60)
+            local newY = pos.Y.Scale + (p.Speed * 0.05 * dt) -- Fall down
             
-            if newY < 0 then newY = 1; newX = math.random() end
-            if newX < 0 then newX = 1 elseif newX > 1 then newX = 0 end
+            if newY > 1 then 
+                newY = -0.1 
+                p.Obj.Position = UDim2.new(math.random(), 0, newY, 0)
+            else
+                p.Obj.Position = UDim2.new(pos.X.Scale, 0, newY, 0)
+            end
             
-            p.Obj.Position = UDim2.new(newX, 0, newY, 0)
+            -- Random character change glitch effect
+            if tickCount % p.ChangeRate == 0 then
+                p.Obj.Text = chars[math.random(1, #chars)]
+            end
         end
     end)
 end
@@ -265,9 +289,9 @@ function VFX.ApplyCRT(parent)
     scanline.Name = "FX_CRT"
     scanline.BackgroundTransparency = 1
     scanline.Size = UDim2.new(1, 0, 1, 0)
-    scanline.Image = "rbxassetid://7019796593" -- Better scanline texture
-    scanline.ImageTransparency = 0.95
-    scanline.ImageColor3 = Color3.new(0,0,0)
+    scanline.Image = "rbxassetid://7019796593" -- Scanlines
+    scanline.ImageTransparency = 0.92
+    scanline.ImageColor3 = Color3.fromRGB(0, 255, 0) -- Green tint
     scanline.ScaleType = Enum.ScaleType.Tile
     scanline.TileSize = UDim2.new(0, 128, 0, 128)
     scanline.ZIndex = 100
@@ -310,98 +334,69 @@ function UI.MakeDraggable(frame, handle)
     end)
 end
 
--- [[ NOTIFICATION SYSTEM - FIXED ]]
+-- [[ NOTIFICATION SYSTEM ]]
 function UI.Notify(msg, type)
     task.spawn(function()
         if not UI.Screen then return end
         
         -- Color Logic
         local accentColor = CFG.Theme.Primary
-        local iconId = "rbxassetid://3926305904" -- Info
-        
-        if type == "ERR" then 
-            accentColor = CFG.Theme.Error 
-            iconId = "rbxassetid://3926305904" -- Alert
-        elseif type == "SUCCESS" then 
-            accentColor = CFG.Theme.Success 
-            iconId = "rbxassetid://3926307971" -- Check
-        end
+        if type == "ERR" then accentColor = CFG.Theme.Error 
+        elseif type == "SUCCESS" then accentColor = CFG.Theme.Success end
         
         -- Main Container
         local container = UI.Create("Frame", {
             Name = "Notification",
             Parent = UI.Screen,
-            BackgroundColor3 = Color3.fromRGB(15, 15, 20), -- Darker background for contrast
+            BackgroundColor3 = Color3.fromRGB(0, 10, 0), -- Black Green
             Size = UDim2.new(0, 320, 0, 60),
-            Position = UDim2.new(1, 20, 0.85, 0), -- Start off screen
+            Position = UDim2.new(1, 20, 0.85, 0),
             BorderSizePixel = 0,
-            ZIndex = 200 -- Ensure it's on top
+            ZIndex = 200
         })
         
         -- Styling
-        UI.Create("UICorner", {Parent = container, CornerRadius = UDim.new(0, 6)})
-        UI.Create("UIStroke", {Parent = container, Color = Color3.fromRGB(40,40,45), Thickness = 1})
+        UI.Create("UICorner", {Parent = container, CornerRadius = UDim.new(0, 4)})
+        UI.Create("UIStroke", {Parent = container, Color = accentColor, Thickness = 1})
         
-        -- Side Color Bar
+        -- Glitch Bar
         UI.Create("Frame", {
-            Parent = container,
-            BackgroundColor3 = accentColor,
-            Size = UDim2.new(0, 4, 1, 0),
-            Position = UDim2.new(0, 0, 0, 0),
-            BorderSizePixel = 0,
-            ZIndex = 201
+            Parent = container, BackgroundColor3 = accentColor,
+            Size = UDim2.new(0, 6, 1, 0), Position = UDim2.new(0, 0, 0, 0),
+            BorderSizePixel = 0, ZIndex = 201
         })
         
         -- Title
         UI.Create("TextLabel", {
-            Parent = container,
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, -50, 0, 20),
-            Position = UDim2.new(0, 15, 0, 8),
-            Text = (type == "ERR" and "SYSTEM ERROR") or (type == "SUCCESS" and "SUCCESS") or "NOTIFICATION",
-            TextColor3 = accentColor,
-            Font = Enum.Font.GothamBold,
-            TextSize = 11,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            ZIndex = 202
+            Parent = container, BackgroundTransparency = 1,
+            Size = UDim2.new(1, -50, 0, 20), Position = UDim2.new(0, 15, 0, 5),
+            Text = (type == "ERR" and "SYSTEM_FAILURE") or (type == "SUCCESS" and "SYSTEM_SUCCESS") or "SYSTEM_MSG",
+            TextColor3 = accentColor, Font = Enum.Font.Code, TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 202
         })
         
-        -- Message (FIXED VISIBILITY)
+        -- Message
         UI.Create("TextLabel", {
-            Parent = container,
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, -20, 0, 25),
-            Position = UDim2.new(0, 15, 0, 25),
-            Text = msg,
-            TextColor3 = Color3.fromRGB(255, 255, 255), -- Pure White for max contrast
-            Font = Enum.Font.GothamMedium,
-            TextSize = 13,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextWrapped = true,
-            ZIndex = 202
+            Parent = container, BackgroundTransparency = 1,
+            Size = UDim2.new(1, -20, 0, 30), Position = UDim2.new(0, 15, 0, 22),
+            Text = msg, TextColor3 = Color3.fromRGB(220, 255, 220),
+            Font = Enum.Font.Code, TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true, ZIndex = 202
         })
         
-        -- Progress Bar (Timer)
+        -- Progress Bar
         local progress = UI.Create("Frame", {
-            Parent = container,
-            BackgroundColor3 = accentColor,
-            BorderSizePixel = 0,
-            Size = UDim2.new(1, -4, 0, 2),
-            Position = UDim2.new(0, 4, 1, -2),
-            BackgroundTransparency = 0.5,
-            ZIndex = 202
+            Parent = container, BackgroundColor3 = accentColor, BorderSizePixel = 0,
+            Size = UDim2.new(1, -6, 0, 2), Position = UDim2.new(0, 6, 1, -2),
+            BackgroundTransparency = 0.2, ZIndex = 202
         })
 
         VFX.PlaySound(type == "ERR" and "Error" or "Success")
         
-        -- Animation IN
+        -- Animation
         VFX.Tween(container, 0.4, {Position = UDim2.new(1, -340, 0.85, 0)})
-        
-        -- Timer Animation
         VFX.Tween(progress, 4, {Size = UDim2.new(0, 0, 0, 2)})
         task.wait(4)
-        
-        -- Animation OUT
         VFX.Tween(container, 0.4, {Position = UDim2.new(1, 20, 0.85, 0)})
         task.wait(0.4)
         container:Destroy()
@@ -415,22 +410,25 @@ function UI.RunBoot(parent, onDone)
     })
     local term = UI.Create("TextLabel", {
         Parent = bootFrame, BackgroundTransparency = 1, Size = UDim2.new(0.9,0,0.9,0), Position = UDim2.new(0.05,0,0.05,0),
-        TextColor3 = CFG.Theme.Primary, Font = CFG.Assets.CodeFont, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, Text = ""
+        TextColor3 = CFG.Theme.Primary, Font = CFG.Assets.CodeFont, TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, Text = ""
     })
     
     local lines = {
-        "[KERNEL] Initializing Titan Protocol v"..CFG.Version,
-        "[MEM] Allocating heap size 128MB... OK",
-        "[NET] Pinging " .. CFG.Domain:sub(9, 20) .. "... 24ms",
-        "[SEC] Verifying Integrity Checksum... PASSED",
-        "[SYS] Mounting User Interface...",
-        "[SYS] Launching..."
+        "ROOT@TITAN:~# init protocol v"..CFG.Version,
+        "ROOT@TITAN:~# load_modules --all",
+        "[ OK ] Memory Allocation",
+        "[ OK ] NetSockets Initialized",
+        "ROOT@TITAN:~# ping " .. CFG.Domain,
+        "Reply from server: bytes=32 time=24ms TTL=54",
+        "[ OK ] Connection Secure",
+        "ROOT@TITAN:~# launch_gui"
     }
     
     VFX.PlaySound("Boot")
     
     for _, l in ipairs(lines) do
-        term.Text = term.Text .. "> " .. l .. "\n"
+        term.Text = term.Text .. l .. "\n"
         VFX.PlaySound("Typing", {Volume = 0.2, Pitch = 1 + math.random()*0.2})
         task.wait(math.random(1,3)/10)
     end
@@ -460,126 +458,79 @@ function HairKey.init(config)
         Name = "MainFrame",
         Parent = UI.Screen,
         BackgroundColor3 = CFG.Theme.Background,
-        Size = UDim2.new(0, 550, 0, 360),
-        Position = UDim2.new(0.5, -275, 0.5, -180),
+        Size = UDim2.new(0, 500, 0, 300),
+        Position = UDim2.new(0.5, -250, 0.5, -150),
         BorderSizePixel = 0,
-        ClipsDescendants = false, -- Enable glow outside
+        ClipsDescendants = false,
         Visible = false
     })
     
-    UI.Create("UICorner", {Parent = MainFrame, CornerRadius = UDim.new(0, 8)})
+    -- Matrix Border
+    local Stroke = UI.Create("UIStroke", {Parent = MainFrame, Thickness = 2, Color = CFG.Theme.Primary, Transparency = 0})
     
-    -- Outer Glow Shadow
-    UI.Create("ImageLabel", {
-        Parent = MainFrame,
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://5028857472",
-        ImageColor3 = Color3.new(0,0,0),
-        Size = UDim2.new(1, 100, 1, 100),
-        Position = UDim2.new(0, -50, 0, -50),
-        ImageTransparency = 0.2,
-        ZIndex = 0
-    })
-
-    -- Tech Border (Animated)
-    local Stroke = UI.Create("UIStroke", {Parent = MainFrame, Thickness = 2, Transparency = 0})
-    local Gradient = UI.Create("UIGradient", {
-        Parent = Stroke,
-        Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, CFG.Theme.Primary),
-            ColorSequenceKeypoint.new(0.5, CFG.Theme.Secondary),
-            ColorSequenceKeypoint.new(1, CFG.Theme.Primary)
-        },
-        Rotation = 45
-    })
-    
-    task.spawn(function()
-        while MainFrame.Parent do
-            Gradient.Rotation = Gradient.Rotation + 1.5
-            task.wait(0.02)
-        end
-    end)
-
-    -- Background Grid (Parallax)
-    local Grid = UI.Create("ImageLabel", {
-        Parent = MainFrame, BackgroundTransparency = 1, Image = CFG.Assets.GridTexture,
-        ImageColor3 = CFG.Theme.Primary, ImageTransparency = 0.95,
-        Size = UDim2.new(1.2, 0, 1.2, 0), Position = UDim2.new(-0.1, 0, -0.1, 0),
-        ScaleType = Enum.ScaleType.Tile, TileSize = UDim2.new(0, 30, 0, 30), ZIndex = 1
-    })
-    
-    RunService.RenderStepped:Connect(function()
-        if not MainFrame.Visible then return end
-        local mX, mY = Mouse.X / workspace.CurrentCamera.ViewportSize.X, Mouse.Y / workspace.CurrentCamera.ViewportSize.Y
-        local targetPos = UDim2.new(-0.1 + (mX-0.5)*0.03, 0, -0.1 + (mY-0.5)*0.03, 0)
-        Grid.Position = Grid.Position:Lerp(targetPos, 0.1)
-    end)
-
-    VFX.SpawnParticles(MainFrame, 25)
+    -- Background Particles (Matrix Rain)
+    VFX.SpawnParticles(MainFrame, 40)
     VFX.ApplyCRT(MainFrame)
 
     -- 2. HEADER
-    local TopBar = UI.Create("Frame", {Parent = MainFrame, BackgroundTransparency = 1, Size = UDim2.new(1,0,0,50), ZIndex = 10})
+    local TopBar = UI.Create("Frame", {Parent = MainFrame, BackgroundTransparency = 1, Size = UDim2.new(1,0,0,40), ZIndex = 10})
     UI.MakeDraggable(MainFrame, TopBar)
     
     UI.Create("TextLabel", {
         Parent = TopBar,
-        Text = CFG.AppName .. " <font color='#666'>// AUTHENTICATION</font>",
-        RichText = true, Font = CFG.Assets.HeaderFont, TextSize = 20,
-        TextColor3 = CFG.Theme.Text, Size = UDim2.new(1, -50, 1, 0), Position = UDim2.new(0, 25, 0, 0),
+        Text = "> " .. CFG.AppName .. "_AUTH",
+        Font = CFG.Assets.CodeFont, TextSize = 18,
+        TextColor3 = CFG.Theme.Primary, Size = UDim2.new(1, -50, 1, 0), Position = UDim2.new(0, 15, 0, 0),
         TextXAlignment = Enum.TextXAlignment.Left, BackgroundTransparency = 1
     })
     
     local CloseBtn = UI.Create("TextButton", {
-        Parent = TopBar, Text = "×", Font = Enum.Font.GothamMedium, TextSize = 30,
-        TextColor3 = CFG.Theme.TextDim, BackgroundTransparency = 1,
-        Size = UDim2.new(0, 50, 1, 0), Position = UDim2.new(1, -50, 0, 0)
+        Parent = TopBar, Text = "[X]", Font = CFG.Assets.CodeFont, TextSize = 18,
+        TextColor3 = CFG.Theme.Error, BackgroundTransparency = 1,
+        Size = UDim2.new(0, 40, 1, 0), Position = UDim2.new(1, -40, 0, 0)
     })
-    CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = CFG.Theme.Error end)
-    CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = CFG.Theme.TextDim end)
     CloseBtn.MouseButton1Click:Connect(function()
         MainFrame.Visible = false
-        UI.Notify("Minimized to tray.", "WARN")
+        UI.Notify("Minimized to background process.", "WARN")
     end)
 
     -- 3. CONTENT AREA
-    local Content = UI.Create("Frame", {Parent = MainFrame, BackgroundTransparency = 1, Size = UDim2.new(1, -50, 1, -80), Position = UDim2.new(0, 25, 0, 60), ZIndex = 10})
+    local Content = UI.Create("Frame", {Parent = MainFrame, BackgroundTransparency = 1, Size = UDim2.new(1, -40, 1, -60), Position = UDim2.new(0, 20, 0, 50), ZIndex = 10})
     
     -- Key Input
     local InputFrame = UI.Create("Frame", {
-        Parent = Content, BackgroundColor3 = CFG.Theme.Panel, Size = UDim2.new(1, 0, 0, 55), Position = UDim2.new(0,0,0.1,0)
+        Parent = Content, BackgroundColor3 = CFG.Theme.Panel, Size = UDim2.new(1, 0, 0, 45), Position = UDim2.new(0,0,0.1,0)
     })
-    UI.Create("UICorner", {Parent = InputFrame, CornerRadius = UDim.new(0, 8)})
-    local InputStroke = UI.Create("UIStroke", {Parent = InputFrame, Color = Color3.fromRGB(40,40,45), Thickness = 1})
+    local InputStroke = UI.Create("UIStroke", {Parent = InputFrame, Color = CFG.Theme.PanelBorder, Thickness = 1})
     
     local InputBox = UI.Create("TextBox", {
-        Parent = InputFrame, BackgroundTransparency = 1, Size = UDim2.new(1, -30, 1, 0), Position = UDim2.new(0, 15, 0, 0),
-        Text = "", PlaceholderText = "PASTE KEY HERE...", TextColor3 = CFG.Theme.Primary, PlaceholderColor3 = CFG.Theme.TextDim,
-        Font = CFG.Assets.CodeFont, TextSize = 16, ClearTextOnFocus = false
+        Parent = InputFrame, BackgroundTransparency = 1, Size = UDim2.new(1, -20, 1, 0), Position = UDim2.new(0, 10, 0, 0),
+        Text = "", PlaceholderText = "INPUT_ACCESS_KEY...", TextColor3 = CFG.Theme.Primary, PlaceholderColor3 = CFG.Theme.TextDim,
+        Font = CFG.Assets.CodeFont, TextSize = 14, ClearTextOnFocus = false
     })
     
     InputBox.Focused:Connect(function() VFX.Tween(InputStroke, 0.3, {Color = CFG.Theme.Primary}) end)
-    InputBox.FocusLost:Connect(function() VFX.Tween(InputStroke, 0.3, {Color = Color3.fromRGB(40,40,45)}) end)
+    InputBox.FocusLost:Connect(function() VFX.Tween(InputStroke, 0.3, {Color = CFG.Theme.PanelBorder}) end)
 
     -- Button Creator
-    local function CreateTechBtn(text, pos, color, callback)
+    local function CreateMatrixBtn(text, pos, color, callback)
         local btn = UI.Create("TextButton", {
-            Parent = Content, BackgroundColor3 = color, BackgroundTransparency = 0.1,
-            Size = UDim2.new(0.48, 0, 0, 50), Position = pos, Text = "", AutoButtonColor = false
+            Parent = Content, BackgroundColor3 = color, BackgroundTransparency = 0.8,
+            Size = UDim2.new(0.48, 0, 0, 40), Position = pos, Text = "", AutoButtonColor = false
         })
-        UI.Create("UICorner", {Parent = btn, CornerRadius = UDim.new(0, 8)})
-        
-        -- Tech Pattern Inside
-        UI.Create("ImageLabel", {
-            Parent = btn, BackgroundTransparency = 1, Image = "rbxassetid://300134974", ImageTransparency = 0.9,
-            Size = UDim2.new(1,0,1,0), ScaleType = Enum.ScaleType.Tile, TileSize = UDim2.new(0, 10, 0, 10)
-        })
+        UI.Create("UIStroke", {Parent = btn, Color = color, Thickness = 1})
         
         UI.Create("TextLabel", {
             Parent = btn, BackgroundTransparency = 1, Size = UDim2.new(1,0,1,0),
-            Text = text, Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = Color3.new(0,0,0)
+            Text = text, Font = CFG.Assets.CodeFont, TextSize = 14, TextColor3 = color
         })
         
+        btn.MouseEnter:Connect(function() 
+            VFX.Tween(btn, 0.2, {BackgroundTransparency = 0.5}) 
+        end)
+        btn.MouseLeave:Connect(function() 
+            VFX.Tween(btn, 0.2, {BackgroundTransparency = 0.8}) 
+        end)
         btn.MouseButton1Click:Connect(function()
             VFX.PlaySound("Click")
             callback()
@@ -590,7 +541,7 @@ function HairKey.init(config)
     
     -- Action Logic
     local function GetKey()
-        UI.Notify("Contacting Server...", "WARN")
+        UI.Notify("INITIALIZING HANDSHAKE...", "WARN")
         local hwid = game:GetService("RbxAnalyticsService"):GetClientId()
         local res = Network.Request(CFG.Domain .. "/api/handshake", "POST", {hwid = hwid})
         
@@ -598,59 +549,60 @@ function HairKey.init(config)
             local data = HttpService:JSONDecode(res.Body)
             if data.success then
                 setclipboard(data.url)
-                UI.Notify("Link Copied to Clipboard!", "SUCCESS")
+                UI.Notify("LINK COPIED TO CLIPBOARD", "SUCCESS")
             else
-                UI.Notify("Server Error: " .. (data.error or "Unknown"), "ERR")
+                UI.Notify("SERVER ERR: " .. (data.error or "Unknown"), "ERR")
             end
         else
-            UI.Notify("Connection Failed ("..res.StatusCode..")", "ERR")
+            -- Detailed Error for User
+            UI.Notify("CONN FAIL ("..res.StatusCode..")", "ERR")
+            print("[HAIRKEY DEBUG] Error Body:", res.Body)
         end
     end
     
     local function Verify()
         local key = InputBox.Text
-        if key:gsub(" ", "") == "" then UI.Notify("Please enter a key.", "ERR") return end
+        if key:gsub(" ", "") == "" then UI.Notify("KEY_EMPTY", "ERR") return end
         
-        UI.Notify("Verifying...", "WARN")
+        UI.Notify("VERIFYING TOKEN...", "WARN")
         local hwid = game:GetService("RbxAnalyticsService"):GetClientId()
         local res = Network.Request(CFG.Domain .. "/api/check-key?hwid="..hwid.."&key="..key, "GET")
         
         if res.StatusCode == 200 then
             local data = HttpService:JSONDecode(res.Body)
             if data.valid then
-                UI.Notify("Access Granted. Welcome.", "SUCCESS")
+                UI.Notify("ACCESS GRANTED", "SUCCESS")
                 Crypt.Save({key = key})
-                VFX.Tween(MainFrame, 0.5, {Size = UDim2.new(0, 550, 0, 0), Position = UDim2.new(0.5, -275, 0.5, 0)})
+                VFX.Tween(MainFrame, 0.5, {Size = UDim2.new(0, 500, 0, 0), Position = UDim2.new(0.5, -250, 0.5, 0)})
                 task.wait(0.5)
                 MainFrame.Visible = false
                 OnKeyCorrect()
             else
-                UI.Notify("Invalid Key.", "ERR")
+                UI.Notify("ACCESS DENIED: INVALID KEY", "ERR")
             end
         else
-            UI.Notify("Server Timeout.", "ERR")
+            UI.Notify("SERVER TIMEOUT", "ERR")
         end
     end
     
-    local BtnGet = CreateTechBtn("GET KEY", UDim2.new(0,0,0.5,0), CFG.Theme.Primary, GetKey)
-    local BtnVer = CreateTechBtn("LOGIN", UDim2.new(0.52,0,0.5,0), CFG.Theme.Secondary, Verify)
+    local BtnGet = CreateMatrixBtn("[ GET KEY ]", UDim2.new(0,0,0.6,0), CFG.Theme.Secondary, GetKey)
+    local BtnVer = CreateMatrixBtn("[ LOGIN ]", UDim2.new(0.52,0,0.6,0), CFG.Theme.Primary, Verify)
 
     -- 4. FOOTER STATUS
     local Status = UI.Create("TextLabel", {
         Parent = MainFrame, BackgroundTransparency = 1,
-        Size = UDim2.new(1, -50, 0, 20), Position = UDim2.new(0, 25, 1, -30),
-        Text = "> WAITING FOR INPUT...", Font = CFG.Assets.CodeFont, TextSize = 12,
+        Size = UDim2.new(1, -20, 0, 20), Position = UDim2.new(0, 10, 1, -25),
+        Text = "STATUS: AWAITING_INPUT | SECURE_CONN: TRUE", Font = CFG.Assets.CodeFont, TextSize = 10,
         TextColor3 = CFG.Theme.TextDim, TextXAlignment = Enum.TextXAlignment.Left
     })
     
     -- 5. FLOATING WIDGET
     local Widget = UI.Create("ImageButton", {
         Parent = UI.Screen, BackgroundColor3 = CFG.Theme.Panel,
-        Size = UDim2.new(0, 50, 0, 50), Position = UDim2.new(0, 20, 0.5, -25),
+        Size = UDim2.new(0, 40, 0, 40), Position = UDim2.new(0, 20, 0.5, -20),
         Image = CFG.Assets.Icons.Key, ImageColor3 = CFG.Theme.Primary,
         BorderSizePixel = 0
     })
-    UI.Create("UICorner", {Parent = Widget, CornerRadius = UDim.new(0, 16)})
     UI.Create("UIStroke", {Parent = Widget, Color = CFG.Theme.Primary, Thickness = 2})
     UI.MakeDraggable(Widget, Widget)
     
@@ -669,7 +621,7 @@ function HairKey.init(config)
         if res.StatusCode == 200 then
             local data = HttpService:JSONDecode(res.Body)
             if data.valid then
-                UI.Notify("Quick Login Successful.", "SUCCESS")
+                UI.Notify("AUTO_LOGIN: SUCCESS", "SUCCESS")
                 OnKeyCorrect()
                 return
             end
