@@ -341,28 +341,29 @@
 
         // --- 2. API LOGIC ---
         async function loadProfile() {
-            addLog("FETCHING USER PROFILE...", "warn");
-            try {
-                const res = await fetch(API_PROFILE, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
-                });
-                const data = await res.json();
+        addLog("FETCHING USER PROFILE...", "warn");
+        try {
+            const res = await fetch(API_PROFILE, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
+            });
+            const data = await res.json();
 
-                if (data.success) {
-                    addLog("USER IDENTIFIED: " + data.hwidShort);
-                    document.getElementById('user-display').innerText = data.hwidShort;
-                    document.getElementById('stats-gen').innerText = data.totalGenerations;
-                    
-                    if (data.keyStatus === "ACTIVE") {
-                        showActive(data.currentKey, data.timeLeft);
-                    } else {
-                        showExpired();
-                    }
+            if (data.success) {
+                addLog("USER IDENTIFIED: " + data.hwidShort);
+                document.getElementById('user-display').innerText = data.hwidShort;
+                document.getElementById('stats-gen').innerText = data.totalGenerations;
+                
+                if (data.keyStatus === "ACTIVE") {
+                    showActive(data.currentKey, data.timeLeft);
                 } else {
-                    addLog("ERROR: " + data.error, "err");
+                    // Truyền thêm step info vào hàm showExpired
+                    showExpired(data.currentStep, data.totalSteps);
                 }
-            } catch (e) { console.error(e); }
-        }
+            } else {
+                addLog("ERROR: " + data.error, "err");
+            }
+        } catch (e) { console.error(e); }
+    }
 
         function showActive(key, seconds) {
             document.getElementById('view-active').style.display = 'block';
@@ -392,28 +393,36 @@
             }, 1000);
         }
 
-        function showExpired() {
-            document.getElementById('view-active').style.display = 'none';
-            document.getElementById('view-expired').style.display = 'block';
-            addLog("LICENSE EXPIRED. SECURITY CHECK REQ.", "err");
-            
-            // Render Turnstile
-            turnstile.render('#turnstile-wrapper', {
-                sitekey: CLOUDFLARE_SITE_KEY,
-                theme: 'dark',
-                callback: function(token) {
-                    cfToken = token;
-                    const btn = document.getElementById('btn-ads');
-                    btn.disabled = false;
-                    btn.style.boxShadow = "0 0 20px var(--success)";
-                    btn.style.borderColor = "var(--success)";
-                    btn.style.color = "var(--success)";
-                    btn.innerHTML = `<i class="fas fa-unlock"></i> GENERATE LINK`;
-                    playSound('hover');
-                    addLog("HUMAN VERIFIED via CLOUDFLARE");
-                }
-            });
-        }
+    function showExpired(currentStep = 0, totalSteps = 2) {
+        document.getElementById('view-active').style.display = 'none';
+        document.getElementById('view-expired').style.display = 'block';
+        
+        // Tính bước hiện tại (nếu currentStep=0 -> là đang ở bước 1)
+        const displayStep = currentStep + 1;
+        addLog(`SECURITY CHECK: STEP ${displayStep}/${totalSteps}`, "err");
+        
+        // Render Turnstile
+        document.getElementById('turnstile-wrapper').innerHTML = ""; // Clear cũ để render lại nếu cần
+        turnstile.render('#turnstile-wrapper', {
+            sitekey: CLOUDFLARE_SITE_KEY,
+            theme: 'dark',
+            callback: function(token) {
+                cfToken = token;
+                const btn = document.getElementById('btn-ads');
+                btn.disabled = false;
+                btn.style.boxShadow = "0 0 20px var(--success)";
+                btn.style.borderColor = "var(--success)";
+                btn.style.color = "var(--success)";
+                
+                // Đổi chữ trên nút
+                btn.innerHTML = `<i class="fas fa-forward"></i> CHECKPOINT ${displayStep}/${totalSteps}`;
+                
+                playSound('hover');
+                addLog("VERIFIED. READY FOR NEXT STEP.");
+            }
+        });
+    }
+
 
         async function handleAds() {
             if(!cfToken) return;
@@ -439,12 +448,20 @@
         }
 
         async function completeProcess() {
-            addLog("CALLBACK RECEIVED. VERIFYING...", "warn");
-            const res = await fetch(API_COMPLETE, {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
-            });
-            const data = await res.json();
-            if(data.success) {
+        addLog("CALLBACK RECEIVED. VERIFYING...", "warn");
+        const res = await fetch(API_COMPLETE, {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
+        });
+        const data = await res.json();
+        
+        if(data.success) {
+            // Đã xong hoàn toàn -> Hiện Key
+            window.location.hash = "";
+            await loadProfile();
+        } else {
+            if (data.refresh) {
+                // Chưa xong hết (Mới xong bước 1) -> Load lại để hiện bước 2
+                addLog("STEP COMPLETED. LOADING NEXT...", "success");
                 window.location.hash = "";
                 await loadProfile();
             } else {
@@ -453,6 +470,7 @@
                 await loadProfile();
             }
         }
+    }
 
         function copyKey() {
             playSound('click');

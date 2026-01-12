@@ -1,4 +1,4 @@
-require('dotenv').config(); // Nạp biến môi trường đầu tiên
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
@@ -10,7 +10,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// === LOAD CONFIG FROM ENV ===
+// === CONFIG ===
 const MONGO_URI = process.env.MONGO_URI;
 const YOUR_DOMAIN = process.env.DOMAIN;
 const LINKVERTISE_USER_ID = process.env.LINKVERTISE_USER_ID;
@@ -19,20 +19,17 @@ const ADMIN_PASS = process.env.ADMIN_PASS;
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const CLOUDFLARE_SECRET_KEY = process.env.CLOUDFLARE_SECRET_KEY;
 
-// Validate Config
+// CẤU HÌNH SỐ BƯỚC (STEP)
+const TOTAL_STEPS = 2; 
+
 if (!MONGO_URI || !LINKVERTISE_USER_ID) {
     console.error("❌ CRITICAL ERROR: Missing .env configuration!");
     process.exit(1);
 }
 
-// === DATABASE CONNECTION ===
-mongoose.connect(MONGO_URI)
-    .then(() => console.log('✅ Connected to MongoDB Atlas'))
-    .catch(err => console.error('❌ MongoDB Connection Error:', err));
+mongoose.connect(MONGO_URI).then(() => console.log('✅ Connected to MongoDB Atlas'));
 
-// === DATABASE SCHEMAS ===
-
-// 1. User Schema: Lưu thông tin tài khoản vĩnh viễn theo HWID
+// === SCHEMAS ===
 const UserSchema = new mongoose.Schema({
     hwid: { type: String, unique: true, required: true },
     key: { type: String, default: null },
@@ -42,117 +39,91 @@ const UserSchema = new mongoose.Schema({
     lastLogin: { type: Date, default: Date.now }
 });
 
-// 2. Session Schema: Lưu phiên làm việc tạm thời (Handshake)
-// Tự động xóa sau 10 phút (600s) để dọn dẹp rác
 const SessionSchema = new mongoose.Schema({
     sessionId: { type: String, unique: true },
-    hwid: String,       // Map về User thật
-    secretToken: String, // Token chống bypass link
-    verified: { type: Boolean, default: false }, // Đã xem quảng cáo chưa?
-    createdAt: { type: Date, default: Date.now, expires: 600 } 
+    hwid: String,
+    secretToken: String,
+    
+    // THAY ĐỔI: Dùng biến đếm số bước thay vì verified boolean
+    currentStep: { type: Number, default: 0 }, 
+    
+    createdAt: { type: Date, default: Date.now, expires: 1800 } // 30 phút
 });
 
 const UserModel = mongoose.model('User', UserSchema);
 const SessionModel = mongoose.model('Session', SessionSchema);
 
 // === MIDDLEWARE ===
-app.set('trust proxy', true); // Để lấy đúng IP trên Render
+app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve giao diện Cyberpunk
-app.use(session({
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Đặt true nếu chạy https local (Render tự lo cái này)
-}));
+app.use(express.static('public'));
+app.use(session({ secret: SESSION_SECRET, resave: false, saveUninitialized: true }));
 
-// Helper lấy IP
 function getClientIp(req) {
     return (req.headers['x-forwarded-for'] || req.socket.remoteAddress).split(',')[0].trim();
 }
 
-// Middleware Admin Auth
 function checkAdminAuth(req, res, next) {
     if (req.session.isAdmin) next();
     else res.status(403).json({ error: "Unauthorized" });
 }
 
-// ================= API ROUTES (CLIENT SIDE) =================
+// ================= API ROUTES =================
 
-// 1. HANDSHAKE: Script gửi HWID -> Server tạo Session -> Trả về Link Dashboard
+// 1. HANDSHAKE
 app.post('/api/handshake', async (req, res) => {
     try {
         const { hwid } = req.body;
         const ip = getClientIp(req);
-
         if (!hwid) return res.json({ success: false, error: "Missing HWID" });
 
-        // A. Xử lý User (Tự động đăng ký/cập nhật)
         let user = await UserModel.findOne({ hwid });
         if (!user) {
             user = await UserModel.create({ hwid, ip });
-            console.log(`[NEW USER] ${hwid.substring(0, 10)}...`);
         } else {
             user.ip = ip;
             user.lastLogin = Date.now();
             await user.save();
         }
 
-        // B. Tạo Session mới (Để giấu HWID trên URL)
-        const sessionId = crypto.randomBytes(12).toString('hex'); // ID công khai
-        const secretToken = crypto.randomBytes(16).toString('hex'); // Token bí mật
+        const sessionId = crypto.randomBytes(12).toString('hex');
+        const secretToken = crypto.randomBytes(16).toString('hex');
 
-        await SessionModel.create({ sessionId, hwid, secretToken });
+        // Khởi tạo session với bước 0
+        await SessionModel.create({ sessionId, hwid, secretToken, currentStep: 0 });
 
-        // Trả về Link sạch
         res.json({ success: true, url: `${YOUR_DOMAIN}/?id=${sessionId}` });
-
-    } catch (error) {
-        console.error("Handshake Error:", error);
-        res.json({ success: false, error: "Server Internal Error" });
-    }
+    } catch (e) { res.json({ success: false }); }
 });
 
-// 2. CHECK KEY: Script kiểm tra Key có hợp lệ không
+// 2. CHECK KEY
 app.get('/api/check-key', async (req, res) => {
     try {
         const { hwid, key } = req.query;
         const user = await UserModel.findOne({ hwid });
-
         if (!user) return res.json({ valid: false });
-
-        // Kiểm tra Key khớp và Thời hạn
-        if (user.key === key && user.keyExpires > new Date()) {
-            return res.json({ valid: true });
-        }
-        
+        if (user.key === key && user.keyExpires > new Date()) return res.json({ valid: true });
         return res.json({ valid: false });
     } catch (e) { res.json({ valid: false }); }
 });
 
-// ================= API ROUTES (WEB FRONTEND) =================
-
-// 3. LOAD PROFILE: Web lấy thông tin hiển thị Dashboard
+// 3. PROFILE (Cập nhật để trả về số bước)
 app.post('/api/profile', async (req, res) => {
     try {
         const { sessionId } = req.body;
         const session = await SessionModel.findOne({ sessionId });
-        if (!session) return res.json({ success: false, error: "Session Invalid/Expired" });
+        if (!session) return res.json({ success: false, error: "Session Invalid" });
 
         const user = await UserModel.findOne({ hwid: session.hwid });
         if (!user) return res.json({ success: false, error: "User Not Found" });
 
-        // Logic tính toán trạng thái Key
         let keyStatus = "NONE";
         let timeLeft = 0;
-
         if (user.key && user.keyExpires > new Date()) {
             keyStatus = "ACTIVE";
             timeLeft = Math.floor((new Date(user.keyExpires) - new Date()) / 1000);
-        } else if (user.key) {
-            keyStatus = "EXPIRED";
-        }
+        } else if (user.key) keyStatus = "EXPIRED";
 
         res.json({
             success: true,
@@ -160,96 +131,93 @@ app.post('/api/profile', async (req, res) => {
             keyStatus: keyStatus,
             currentKey: keyStatus === "ACTIVE" ? user.key : null,
             timeLeft: timeLeft,
-            totalGenerations: user.totalGenerations
+            totalGenerations: user.totalGenerations,
+            // Gửi thêm thông tin Step về Client
+            currentStep: session.currentStep,
+            totalSteps: TOTAL_STEPS
         });
-    } catch (e) { res.json({ success: false, error: e.message }); }
+    } catch (e) { res.json({ success: false }); }
 });
 
-// 4. START PROCESS: Tạo Link Linkvertise Dynamic
+// 4. START PROCESS (Tạo Link)
 app.post('/api/start-process', async (req, res) => {
     try {
-        const { sessionId, cfToken } = req.body; // Nhận thêm cfToken từ Client
-
-        // 1. KIỂM TRA TURNSTILE TOKEN
-        if (!cfToken) return res.json({ success: false, error: "Security Check Failed (No Token)" });
-
+        const { sessionId, cfToken } = req.body;
+        
+        // --- TURNSTILE CHECK ---
+        if (!cfToken) return res.json({ success: false, error: "Captcha Required" });
         const cfVerify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                secret: CLOUDFLARE_SECRET_KEY,
-                response: cfToken
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ secret: CLOUDFLARE_SECRET_KEY, response: cfToken })
         });
         const cfData = await cfVerify.json();
+        if (!cfData.success) return res.json({ success: false, error: "Bot Detected" });
+        // -----------------------
 
-        if (!cfData.success) {
-            return res.json({ success: false, error: "Bot Detected! Please refresh." });
-        }
-
-        // 2. LOGIC CŨ (Kiểm tra session)
         const session = await SessionModel.findOne({ sessionId });
         if (!session) return res.json({ success: false, error: "Session Invalid" });
 
-        // Tạo Linkvertise Link
+        if (session.currentStep >= TOTAL_STEPS) return res.json({ success: false, error: "Already Completed" });
+
+        // Tạo Linkvertise
         const targetUrl = `${YOUR_DOMAIN}/api/callback?sid=${sessionId}&t=${session.secretToken}`;
         const base64Url = Buffer.from(targetUrl).toString('base64');
         const randomPath = Math.floor(Math.random() * 99999);
         const linkvertiseLink = `https://link-to.net/${LINKVERTISE_USER_ID}/${randomPath}/dynamic/?r=${base64Url}`;
 
         res.json({ success: true, link: linkvertiseLink });
-
-    } catch (e) { 
-        console.error(e);
-        res.json({ success: false, error: "Internal Server Error" }); 
-    }
+    } catch (e) { res.json({ success: false, error: e.message }); }
 });
 
-// 5. CALLBACK: Linkvertise redirect về đây
+// 5. CALLBACK (Xử lý tăng bước)
 app.get('/api/callback', async (req, res) => {
     try {
-        const { sid, t } = req.query; // sid = sessionId, t = secretToken
-        
+        const { sid, t } = req.query;
         const session = await SessionModel.findOne({ sessionId: sid });
-        
-        if (!session) return res.send("<h1 style='color:red; text-align:center'>SESSION EXPIRED</h1>");
-        
-        // KIỂM TRA BẢO MẬT: Token phải khớp
-        if (session.secretToken !== t) {
-            return res.send("<h1 style='color:red; text-align:center'>INVALID TOKEN (BYPASS DETECTED)</h1>");
-        }
 
-        // Xác thực thành công
-        session.verified = true;
+        if (!session) return res.send("<h1>SESSION EXPIRED</h1>");
+        if (session.secretToken !== t) return res.send("<h1>INVALID TOKEN</h1>");
+
+        // Tăng bước lên 1
+        session.currentStep += 1;
+        
+        // QUAN TRỌNG: Đổi Token mới để bước sau không dùng lại link cũ được (Chống bypass link cũ)
+        session.secretToken = crypto.randomBytes(16).toString('hex');
+        
         await session.save();
 
-        // Redirect về Web Dashboard kèm hash #completed
         res.redirect(`/?id=${sid}#completed`);
-    } catch (e) { res.send("Internal Error"); }
+    } catch (e) { res.send("Error"); }
 });
 
-// 6. COMPLETE PROCESS: Web gọi để lấy Key sau khi đã Verified
+// 6. COMPLETE PROCESS (Chỉ cấp key khi đủ bước)
 app.post('/api/complete-process', async (req, res) => {
     try {
         const { sessionId } = req.body;
         const session = await SessionModel.findOne({ sessionId });
 
         if (!session) return res.json({ success: false, error: "Session Lost" });
-        if (!session.verified) return res.json({ success: false, error: "Unverified Action" });
+        
+        // KIỂM TRA ĐỦ BƯỚC CHƯA
+        if (session.currentStep < TOTAL_STEPS) {
+            return res.json({ 
+                success: false, 
+                error: `Unfinished. Step ${session.currentStep}/${TOTAL_STEPS}`,
+                refresh: true // Báo hiệu cho frontend load lại profile để hiện bước tiếp theo
+            });
+        }
 
-        // Tạo Key Mới (HAIRKEY_XXXX)
+        // Đủ bước -> Cấp Key
         const randomPart = crypto.randomBytes(4).toString('hex').toUpperCase();
         const newKey = `HAIRKEY_${randomPart}`;
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 Giờ
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-        // Cập nhật User
         const user = await UserModel.findOne({ hwid: session.hwid });
         user.key = newKey;
         user.keyExpires = expiresAt;
         user.totalGenerations += 1;
         await user.save();
 
-        // Xóa Session (Dọn dẹp)
         await SessionModel.deleteOne({ sessionId });
 
         res.json({ success: true, key: newKey });
