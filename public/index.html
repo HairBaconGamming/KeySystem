@@ -3,576 +3,393 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAIRKEY /// QUANTUM CORE</title>
+    <title>HAIRKEY /// TITAN PROTOCOL</title>
     
+    <!-- FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- CLOUDFLARE TURNSTILE -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
     <style>
-        /* =========================================
-           1. CORE SYSTEM VARIABLES & RESET
-           ========================================= */
+        /* === SYSTEM VARIABLES === */
         :root {
-            --primary: #00f3ff; /* Cyan Neon */
-            --secondary: #bc13fe; /* Purple Neon */
-            --danger: #ff0055;
-            --success: #00ff66;
-            --bg-dark: #050505;
-            --panel-bg: rgba(10, 10, 15, 0.85);
-            --border: rgba(0, 243, 255, 0.3);
+            --bg-void: #020202;
+            --panel-dark: #0a0a0c;
+            --neon-cyan: #00f3ff;
+            --neon-purple: #bc13fe;
+            --alert-red: #ff003c;
+            --matrix-green: #00ff41;
+            --font-main: 'Fira Code', monospace;
             --font-head: 'Orbitron', sans-serif;
-            --font-code: 'Fira Code', monospace;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: var(--primary); }
-
+        
         body {
-            background-color: var(--bg-dark);
-            color: var(--primary);
-            font-family: var(--font-code);
-            height: 100vh;
-            overflow: hidden;
-            position: relative;
+            background-color: var(--bg-void);
+            color: var(--neon-cyan);
+            font-family: var(--font-main);
+            height: 100vh; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
         }
 
-        /* CANVAS BACKGROUND */
-        #neural-net {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 0; opacity: 0.4;
-        }
-
-        /* SCANLINE OVERLAY */
+        /* === VISUAL FX === */
         .scanlines {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
-            background-size: 100% 4px;
-            z-index: 999; pointer-events: none; opacity: 0.6;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%; z-index: 10; pointer-events: none;
         }
-
-        /* =========================================
-           2. BOOT SEQUENCE (Màn hình khởi động)
-           ========================================= */
-        #boot-screen {
+        
+        .noise-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 10000;
-            padding: 40px; color: var(--success);
-            font-family: var(--font-code); font-size: 14px;
-            display: flex; flex-direction: column; justify-content: flex-end;
+            background-image: url('https://raw.githubusercontent.com/HairBaconGamming/KeySystem/main/assets/noise.png'); 
+            opacity: 0.05; z-index: 1; pointer-events: none; animation: noise 0.5s steps(5) infinite;
         }
-        .boot-line { margin-bottom: 5px; opacity: 0; animation: typeLine 0.1s forwards; }
-        @keyframes typeLine { to { opacity: 1; } }
+        @keyframes noise { 0% { background-position: 0 0; } 100% { background-position: 100% 100%; } }
 
-        /* =========================================
-           3. MAIN LAYOUT (GRID SYSTEM)
-           ========================================= */
-        #main-interface {
-            position: relative; z-index: 10;
-            display: grid;
-            grid-template-columns: 300px 1fr 300px;
-            grid-template-rows: 80px 1fr 60px;
-            height: 100vh; gap: 20px; padding: 20px;
-            opacity: 0; transition: opacity 1s;
-        }
-
-        /* PANELS */
-        .panel {
-            background: var(--panel-bg);
-            border: 1px solid var(--border);
-            backdrop-filter: blur(10px);
-            padding: 20px; position: relative;
+        /* === MAIN CARD === */
+        .cyber-card {
+            width: 100%; max-width: 500px;
+            background: rgba(10, 10, 12, 0.95);
+            border: 1px solid #333;
+            box-shadow: 0 0 40px rgba(0, 243, 255, 0.1);
+            position: relative; z-index: 5;
+            padding: 2px;
             clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.05);
         }
-        .panel::before {
-            content: "SYSTEM_MODULE"; position: absolute; top: 2px; right: 5px;
-            font-size: 8px; color: var(--border); letter-spacing: 2px;
+
+        .inner-content {
+            background: var(--panel-dark);
+            padding: 30px;
+            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
         }
 
         /* HEADER */
-        .header-area { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        h1 { font-family: var(--font-head); font-size: 2.5rem; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 15px var(--primary); }
-        .sys-status { text-align: right; }
-        .blink { animation: blinker 1s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0; } }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid rgba(0, 243, 255, 0.2); padding-bottom: 20px; }
+        h1 { font-family: var(--font-head); font-size: 2rem; letter-spacing: 4px; color: #fff; text-shadow: 0 0 10px var(--neon-cyan); margin-bottom: 5px; }
+        .sub { font-size: 0.8rem; color: #666; letter-spacing: 2px; }
 
-        /* LEFT: LOGS */
-        .left-sidebar { grid-row: 2 / 3; overflow: hidden; display: flex; flex-direction: column; }
-        #system-logs {
-            flex: 1; overflow-y: hidden; 
-            font-size: 10px; color: #aaa; line-height: 1.4;
-            font-family: 'Courier New', Courier, monospace;
-            border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 10px;
-        }
-        .log-entry { margin-bottom: 2px; }
-        .log-warn { color: var(--secondary); }
-        .log-err { color: var(--danger); }
-
-        /* CENTER: CORE ACTION */
-        .center-stage { 
-            grid-row: 2 / 3; 
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            text-align: center;
-        }
-
-        /* RIGHT: STATS */
-        .right-sidebar { grid-row: 2 / 3; }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
-        .stat-label { font-size: 0.8rem; color: #888; }
-        .stat-val { font-weight: bold; color: #fff; }
-
-        /* FOOTER */
-        .footer-area { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #666; border-top: 1px solid var(--border); padding-top: 10px; }
-
-        /* =========================================
-           4. UI COMPONENTS
-           ========================================= */
-        /* BUTTONS */
-        .cyber-btn {
-            background: rgba(0, 243, 255, 0.1);
-            color: var(--primary);
-            border: 2px solid var(--primary);
-            padding: 20px 40px;
-            font-family: var(--font-head);
-            font-size: 1.2rem; cursor: pointer;
+        /* STATUS BADGE */
+        .status-box {
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px solid var(--neon-cyan);
+            padding: 15px; margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
             transition: 0.3s;
-            position: relative; overflow: hidden;
-            text-transform: uppercase; letter-spacing: 2px;
-            margin-top: 20px; width: 100%;
         }
-        .cyber-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 50px var(--primary); }
-        .cyber-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; box-shadow: none; background: transparent; }
+        .status-dot { width: 8px; height: 8px; background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); animation: pulse 1s infinite; }
+        @keyframes pulse { 50% { opacity: 0.5; } }
+
+        /* ACTION BUTTONS */
+        .cyber-btn {
+            width: 100%; padding: 18px; margin-top: 15px;
+            background: transparent; color: var(--neon-cyan);
+            border: 1px solid var(--neon-cyan);
+            font-family: var(--font-head); font-weight: 700; letter-spacing: 2px;
+            cursor: pointer; position: relative; overflow: hidden;
+            transition: 0.3s; text-transform: uppercase;
+        }
+        .cyber-btn:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 30px var(--neon-cyan); }
+        .cyber-btn:disabled { border-color: #444; color: #444; cursor: not-allowed; box-shadow: none; background: transparent; }
         
-        /* KEY DISPLAY */
-        .key-container {
-            width: 100%; padding: 30px;
-            background: rgba(0,0,0,0.5); border: 1px solid var(--success);
-            margin-bottom: 20px; position: relative;
-            cursor: pointer; overflow: hidden;
+        .cyber-btn.processing {
+            border-color: var(--neon-purple); color: var(--neon-purple);
+            animation: borderPulse 1s infinite;
         }
-        .key-text { font-size: 2rem; color: var(--success); text-shadow: 0 0 10px var(--success); word-break: break-all; font-weight: bold; }
-        .key-container::after { content: "CLICK TO COPY"; position: absolute; bottom: 5px; right: 5px; font-size: 0.6rem; color: #666; }
+        @keyframes borderPulse { 50% { border-color: transparent; } }
 
-        /* EXPIRED STATE */
-        .expired-box { border: 1px solid var(--danger); padding: 20px; width: 100%; background: rgba(255, 0, 85, 0.05); }
-        .danger-text { color: var(--danger); text-shadow: 0 0 10px var(--danger); font-size: 1.5rem; margin-bottom: 10px; }
+        /* KEY DISPLAY */
+        .key-vault {
+            background: #000; border: 1px dashed var(--matrix-green);
+            padding: 20px; text-align: center; cursor: pointer;
+            margin-top: 20px; position: relative;
+        }
+        .key-text { font-size: 1.5rem; color: var(--matrix-green); word-break: break-all; text-shadow: 0 0 5px var(--matrix-green); }
+        .key-vault:hover { background: rgba(0, 255, 65, 0.1); }
 
-        /* TURNSTILE CONTAINER */
-        #turnstile-wrapper { margin: 20px 0; min-height: 65px; display: flex; justify-content: center; }
-
-        /* AUDIO CONTROL */
-        #audio-toggle { cursor: pointer; color: var(--primary); border: 1px solid var(--primary); padding: 5px 10px; font-size: 0.7rem; }
-        #audio-toggle:hover { background: var(--primary); color: #000; }
-
-        /* RESPONSIVE */
-        @media (max-width: 900px) {
-            #main-interface { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; height: auto; overflow-y: auto; }
-            .left-sidebar, .right-sidebar { display: none; } /* Ẩn bớt trên mobile cho gọn */
+        /* UTILS */
+        .hidden { display: none !important; }
+        .text-err { color: var(--alert-red); }
+        .text-warn { color: var(--neon-purple); }
+        
+        /* LOGS */
+        #term-log {
+            font-size: 0.7rem; color: #555; margin-top: 20px; height: 80px; overflow-y: auto;
+            border-top: 1px solid #222; padding-top: 10px;
         }
     </style>
 </head>
 <body>
 
-    <audio id="sfx-boot" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_06953943ca.mp3?filename=reactos-boot-85864.mp3"></audio>
-    <audio id="sfx-hover" src="https://cdn.pixabay.com/download/audio/2025/09/05/audio_2b677bbcc4.mp3?filename=minimalist-button-hover-sound-effect-399749.mp3"></audio>
-    <audio id="sfx-click" src="https://cdn.pixabay.com/download/audio/2024/04/21/audio_1b8d3bcd3d.mp3?filename=click-buttons-ui-menu-sounds-effects-button-7-203601.mp3"></audio>
-    <audio id="sfx-success" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f65046c221.mp3?filename=success-83493.mp3"></audio>
-
-    <canvas id="neural-net"></canvas>
     <div class="scanlines"></div>
+    <div class="noise-bg"></div>
 
-    <div id="boot-screen"></div>
-
-    <div id="main-interface">
-        
-        <div class="header-area panel">
-            <div>
-                <h1>HAIRKEY</h1>
-                <div style="font-size: 0.8rem; letter-spacing: 2px;">QUANTUM OS v9.9.2</div>
-            </div>
-            <div class="sys-status">
-                <div style="color: var(--success);">● SYSTEM ONLINE</div>
-                <div id="clock">00:00:00</div>
-            </div>
-        </div>
-
-        <div class="left-sidebar panel">
-            <h3 style="border-bottom: 1px solid #333; padding-bottom: 5px;">> SYSTEM_LOGS</h3>
-            <div id="system-logs"></div>
-        </div>
-
-        <div class="center-stage panel">
+    <div class="cyber-card">
+        <div class="inner-content">
             
-            <div style="margin-bottom: 30px; width: 100%;">
-                <div style="font-size: 0.7rem; color: #666;">CONNECTED IDENTITY</div>
-                <div id="user-display" style="font-size: 1.5rem; letter-spacing: 3px; background: rgba(0,0,0,0.3); padding: 10px;">
-                    INITIALIZING...
-                </div>
+            <div class="header">
+                <h1>HAIRKEY</h1>
+                <div class="sub">TITAN PROTOCOL v5.2 // SECURE</div>
             </div>
 
-            <div id="view-expired" class="expired-box" style="display: none;">
-                <div class="danger-text">⚠️ ACCESS DENIED</div>
-                <p style="margin-bottom: 20px; font-size: 0.9rem;">Security protocol requires verification.</p>
-                
-                <div id="turnstile-wrapper"></div>
+            <!-- VIEW: CHECKPOINT / EXPIRED -->
+            <div id="view-checkpoint">
+                <div class="status-box" id="status-box">
+                    <div class="status-dot"></div>
+                    <span id="status-text">SYSTEM STANDBY</span>
+                </div>
 
-                <button id="btn-ads" class="cyber-btn" onclick="handleAds()" disabled>
-                    <i class="fas fa-lock"></i> INITIALIZE SEQUENCE
+                <div id="turnstile-box" style="display: flex; justify-content: center; margin: 15px 0; min-height: 65px;"></div>
+
+                <button id="btn-action" class="cyber-btn" onclick="handleAction()" disabled>
+                    <i class="fas fa-lock"></i> INITIALIZE
                 </button>
             </div>
 
-            <div id="view-active" style="display: none; width: 100%;">
-                <div style="color: var(--success); margin-bottom: 10px; font-weight: bold; letter-spacing: 2px;">
-                    <i class="fas fa-shield-alt"></i> ACCESS GRANTED
+            <!-- VIEW: SUCCESS / KEY -->
+            <div id="view-success" class="hidden">
+                <div class="status-box" style="border-color: var(--matrix-green);">
+                    <div class="status-dot" style="background: var(--matrix-green); box-shadow: 0 0 10px var(--matrix-green);"></div>
+                    <span style="color: var(--matrix-green);">ACCESS GRANTED</span>
                 </div>
                 
-                <div class="key-container" onclick="copyKey()">
-                    <div id="key-text" class="key-text">LOADING...</div>
-                </div>
-
-                <div style="font-size: 0.9rem; margin-top: 10px;">
-                    SESSION EXPIRES IN: <span id="time-left" style="color: var(--primary);">...</span>
+                <div class="key-vault" onclick="copyKey()">
+                    <div id="final-key" class="key-text">DECRYPTING...</div>
+                    <div style="font-size: 0.6rem; color: #666; margin-top: 5px;">CLICK TO COPY</div>
                 </div>
             </div>
 
-        </div>
-
-        <div class="right-sidebar panel">
-            <h3 style="border-bottom: 1px solid #333; padding-bottom: 5px;">> METRICS</h3>
-            <div style="margin-top: 20px;">
-                <div class="stat-row">
-                    <span class="stat-label">LATENCY</span>
-                    <span class="stat-val" id="ping-val">24ms</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">ENCRYPTION</span>
-                    <span class="stat-val" style="color: var(--secondary);">AES-256</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">GENERATIONS</span>
-                    <span class="stat-val" id="stats-gen">0</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">SERVER LOAD</span>
-                    <span class="stat-val">
-                        <div style="width: 50px; height: 5px; background: #333; display: inline-block;">
-                            <div style="width: 40%; height: 100%; background: var(--success);" class="blink"></div>
-                        </div>
-                    </span>
-                </div>
+            <!-- TERMINAL LOGS -->
+            <div id="term-log">
+                > SYSTEM READY.<br>
+                > WAITING FOR USER INPUT...
             </div>
-            
-            <div style="margin-top: 30px; width: 100%; height: 100px; border: 1px dashed var(--border); border-radius: 50%; position: relative; overflow: hidden;">
-                <div style="position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--success); transform-origin: left; animation: radar 2s infinite linear;"></div>
-            </div>
-        </div>
 
-        <div class="footer-area panel">
-            <div>SECURE CONNECTION ESTABLISHED // NODE: ALPHA-7</div>
-            <div id="audio-toggle" onclick="toggleAudio()">[ SOUND: ON ]</div>
         </div>
-
     </div>
 
+    <!-- AUDIO -->
+    <audio id="sfx-hover" src="https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3"></audio>
+    <audio id="sfx-click" src="https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3"></audio>
+    <audio id="sfx-success" src="https://assets.mixkit.co/active_storage/sfx/2197/2197-preview.mp3"></audio>
+
     <script>
-        // CONFIG - THAY KEY CỦA BẠN Ở ĐÂY
-        const CLOUDFLARE_SITE_KEY = "0x4AAAAAABBLlduN6HavujOQ"; 
+        // === CONFIG ===
+        const CLOUDFLARE_SITE_KEY = "0x4AAAAAABBLlduN6HavujOQ"; // <--- THAY SITE KEY CỦA BẠN
         
-        const API_PROFILE = '/api/profile';
-        const API_START = '/api/start-process';
-        const API_COMPLETE = '/api/complete-process';
+        // API ENDPOINTS
+        const API = {
+            PROFILE: '/api/profile',
+            START: '/api/start-process',
+            VERIFY_STEP: '/api/verify-step', 
+            COMPLETE: '/api/complete-process'
+        };
 
         // STATE
         let sessionId = null;
         let cfToken = null;
-        let audioEnabled = true;
 
-        // --- 1. BOOT SEQUENCE ---
-        const bootText = [
-            "INITIALIZING KERNEL...",
-            "LOADING MODULES: NET, CRYPTO, UI...",
-            "CONNECTING TO MAINFRAME...",
-            "BYPASSING FIREWALLS...",
-            "ESTABLISHING SECURE HANDSHAKE...",
-            "SYSTEM READY."
-        ];
-
+        // --- CORE LOGIC ---
         window.onload = async () => {
-            // Chạy Boot Screen
-            const bootScreen = document.getElementById('boot-screen');
-            for(let i=0; i<bootText.length; i++) {
-                const div = document.createElement('div');
-                div.className = 'boot-line';
-                div.innerText = `> ${bootText[i]}`;
-                bootScreen.appendChild(div);
-                await new Promise(r => setTimeout(r, 200)); // Delay
-            }
-            await new Promise(r => setTimeout(r, 400));
-            bootScreen.style.display = 'none';
-            document.getElementById('main-interface').style.opacity = 1;
-            
-            // Play Sound
-            playSound('boot');
-            initCanvas(); // Start background
-            startFakeLogs(); // Start fake logs
-            setInterval(updateClock, 1000);
-            setInterval(updatePing, 2000);
-
-            // Logic chính
             const urlParams = new URLSearchParams(window.location.search);
             sessionId = urlParams.get('id');
+            const verifyToken = urlParams.get('verify_token');
 
-            if (window.location.hash === "#completed") {
-                await completeProcess(); return;
+            // 1. NẾU CÓ VERIFY TOKEN -> GỌI API VERIFY
+            if (verifyToken) {
+                log("DETECTED RETURN SIGNAL. VERIFYING...", "warn");
+                setStatus("VERIFYING STEP...", "var(--neon-purple)");
+                setLoading(true, "VERIFYING...");
+                
+                try {
+                    const res = await fetch(API.VERIFY_STEP, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ sessionId, token: verifyToken })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        log("STEP VERIFIED. UPDATING PROTOCOLS...", "success");
+                        playSfx('success');
+                        // Xóa token khỏi URL
+                        window.history.replaceState({}, document.title, `/?id=${sessionId}`);
+                    } else {
+                        log("TOKEN REJECTED: " + data.error, "err");
+                        setStatus("VERIFICATION FAILED", "var(--alert-red)");
+                    }
+                } catch (e) { 
+                    log("CONNECTION ERROR DURING VERIFY", "err"); 
+                }
+                
+                setLoading(false); // Reset nút bấm
             }
 
+            // 2. LOAD PROFILE
             if (sessionId) {
                 await loadProfile();
             } else {
-                addLog("FATAL: MISSING SESSION ID", "err");
-                document.getElementById('user-display').innerText = "DISCONNECTED";
-                document.getElementById('user-display').style.color = "var(--danger)";
+                log("FATAL: MISSING SESSION ID", "err");
+                document.querySelector('.cyber-card').innerHTML = `<h2 style='text-align:center;color:red'>INVALID LINK</h2><p style='text-align:center'>Please use the script to generate a link.</p>`;
             }
         };
 
-        // --- 2. API LOGIC ---
         async function loadProfile() {
-            addLog("FETCHING USER PROFILE...", "warn");
             try {
-                const res = await fetch(API_PROFILE, {
+                const res = await fetch(API.PROFILE, {
                     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
                 });
                 const data = await res.json();
 
                 if (data.success) {
-                    addLog("USER IDENTIFIED: " + data.hwidShort);
-                    document.getElementById('user-display').innerText = data.hwidShort;
-                    document.getElementById('stats-gen').innerText = data.totalGenerations;
+                    log("PROFILE LOADED. HWID: " + data.hwidShort);
                     
                     if (data.keyStatus === "ACTIVE") {
-                        showActive(data.currentKey, data.timeLeft);
+                        showSuccess(data.currentKey);
                     } else {
-                        // Hỗ trợ hiển thị Step/Checkpoint
-                        showExpired(data.currentStep || 0, data.totalSteps || 1);
+                        // Hiển thị Checkpoint hiện tại
+                        setupCheckpoint(data.currentStep, data.totalSteps);
                     }
                 } else {
-                    addLog("ERROR: " + data.error, "err");
+                    // Nếu lỗi (Session Lost) -> Kiểm tra xem có phải vừa xong bước cuối không
+                    await checkCompletion(); 
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { log("PROFILE LOAD ERROR", "err"); }
         }
 
-        function showActive(key, seconds) {
-            document.getElementById('view-active').style.display = 'block';
-            document.getElementById('view-expired').style.display = 'none';
-            playSound('success');
+        function setupCheckpoint(step, total) {
+            const displayStep = step + 1;
+            const btn = document.getElementById('btn-action');
             
-            // Decrypt Effect
-            const keyEl = document.getElementById('key-text');
-            let iter = 0; const chars = "ABCDEF0123456789";
-            const interval = setInterval(() => {
-                keyEl.innerText = key.split("").map((l, i) => {
-                    if (i < iter) return key[i];
-                    return chars[Math.floor(Math.random() * chars.length)];
-                }).join("");
-                if (iter >= key.length) clearInterval(interval);
-                iter += 1/2;
-            }, 30);
+            // Cập nhật trạng thái
+            setStatus(total > 1 ? `CHECKPOINT ${displayStep} / ${total}` : "SECURITY CHECK", "var(--neon-cyan)");
+            log(`AWAITING COMPLETION OF CHECKPOINT ${displayStep}...`);
 
-            // Countdown
-            const timer = document.getElementById('time-left');
-            setInterval(() => {
-                seconds--;
-                if(seconds <= 0) window.location.reload();
-                const h = Math.floor(seconds / 3600);
-                const m = Math.floor((seconds % 3600) / 60);
-                timer.innerText = `${h}H ${m}M`;
-            }, 1000);
-        }
+            // Reset nút bấm về trạng thái chờ Turnstile
+            btn.innerHTML = `<i class="fas fa-lock"></i> WAIT FOR CAPTCHA`;
+            btn.disabled = true;
+            btn.classList.remove('processing');
 
-        function showExpired(currentStep, totalSteps) {
-            document.getElementById('view-active').style.display = 'none';
-            document.getElementById('view-expired').style.display = 'block';
-            
-            const displayStep = currentStep + 1;
-            const stepText = totalSteps > 1 ? `CHECKPOINT ${displayStep}/${totalSteps}` : "GENERATE LINK";
-            
-            addLog(`SECURITY CHECK: ${stepText}`, "err");
-            
-            // Reset & Render Turnstile
-            document.getElementById('turnstile-wrapper').innerHTML = "";
-            turnstile.render('#turnstile-wrapper', {
+            // Render Turnstile
+            document.getElementById('turnstile-box').innerHTML = "";
+            turnstile.render('#turnstile-box', {
                 sitekey: CLOUDFLARE_SITE_KEY,
                 theme: 'dark',
                 callback: function(token) {
                     cfToken = token;
-                    const btn = document.getElementById('btn-ads');
+                    // Mở khóa nút bấm khi xong Captcha
                     btn.disabled = false;
-                    btn.style.boxShadow = "0 0 20px var(--success)";
-                    btn.style.borderColor = "var(--success)";
-                    btn.style.color = "var(--success)";
-                    btn.innerHTML = `<i class="fas fa-forward"></i> ${stepText}`;
-                    playSound('hover');
-                    addLog("HUMAN VERIFIED via CLOUDFLARE");
+                    btn.innerHTML = `<i class="fas fa-bolt"></i> CONTINUE`;
+                    btn.style.boxShadow = "0 0 20px var(--neon-cyan)";
+                    playSfx('hover');
+                    log("CAPTCHA SOLVED. READY.");
                 }
             });
         }
 
-        async function handleAds() {
+        async function handleAction() {
             if(!cfToken) return;
-            playSound('click');
-            const btn = document.getElementById('btn-ads');
-            btn.innerHTML = "GENERATING..."; btn.disabled = true;
-            addLog("REQUESTING DYNAMIC LINK...", "warn");
-
-            const res = await fetch(API_START, {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ sessionId, cfToken })
-            });
-            const data = await res.json();
+            playSfx('click');
+            setLoading(true, "GENERATING SECURE LINK...");
             
-            if(data.success) {
-                window.open(data.link, '_blank');
-                btn.innerText = "WAITING FOR SIGNAL...";
-                addLog("LINK OPENED. WAITING CALLBACK...");
-            } else {
-                addLog("ERROR: " + data.error, "err");
-                setTimeout(() => window.location.reload(), 2000);
+            try {
+                const res = await fetch(API.START, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ sessionId, cfToken })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    log("LINK GENERATED. REDIRECTING...");
+                    // Chuyển hướng
+                    window.location.href = data.link; 
+                } else {
+                    log("ERROR: " + data.error, "err");
+                    setStatus("ERROR: " + data.error, "var(--alert-red)");
+                    setTimeout(() => window.location.reload(), 2000);
+                }
+            } catch(e) {
+                log("NETWORK ERROR", "err");
+                setLoading(false);
             }
         }
 
-        async function completeProcess() {
-            addLog("CALLBACK RECEIVED. VERIFYING...", "warn");
-            const res = await fetch(API_COMPLETE, {
+        async function checkCompletion() {
+            // Dành cho trường hợp session vừa bị xóa do hoàn tất -> Thử lấy key lần cuối
+            const res = await fetch(API.COMPLETE, {
                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
             });
             const data = await res.json();
             
             if(data.success) {
-                // Done - Show Key
-                window.location.hash = "";
-                await loadProfile();
+                showSuccess(data.key);
             } else {
-                if(data.refresh) {
-                    // Step completed -> Next step
-                    addLog("STEP COMPLETE. LOADING NEXT...", "success");
-                    playSound('success');
-                    window.location.hash = "";
-                    await loadProfile();
+                if (data.refresh) {
+                    window.location.reload();
                 } else {
-                    // Error / Expired
-                    addLog("VERIFY FAILED. RETRYING...", "err");
-                    window.location.hash = "";
-                    await loadProfile();
+                    log("SESSION EXPIRED. PLEASE GET NEW LINK.", "err");
+                    setStatus("SESSION EXPIRED", "var(--alert-red)");
                 }
             }
+        }
+
+        function showSuccess(key) {
+            document.getElementById('view-checkpoint').classList.add('hidden');
+            document.getElementById('view-success').classList.remove('hidden');
+            playSfx('success');
+            
+            const el = document.getElementById('final-key');
+            el.innerText = key;
+            log("KEY DECRYPTED SUCCESSFULLY.");
         }
 
         function copyKey() {
-            playSound('click');
-            const k = document.getElementById('key-text').innerText;
+            playSfx('click');
+            const k = document.getElementById('final-key').innerText;
             navigator.clipboard.writeText(k);
-            addLog("KEY COPIED TO CLIPBOARD");
-            alert("COPIED!");
+            log("COPIED TO CLIPBOARD.");
+            alert("KEY COPIED!");
         }
 
-        // --- 3. SYSTEM UTILS (Fake Logs, Clock, Audio) ---
-        function updateClock() {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', {hour12: false});
-        }
-        function updatePing() {
-            const ping = Math.floor(Math.random() * 20) + 15;
-            document.getElementById('ping-val').innerText = ping + "ms";
-        }
-        function addLog(msg, type="normal") {
-            const logBox = document.getElementById('system-logs');
-            const div = document.createElement('div');
-            div.className = 'log-entry ' + (type === 'err' ? 'log-err' : (type === 'warn' ? 'log-warn' : ''));
-            div.innerText = `[${new Date().toLocaleTimeString().split(' ')[0]}] ${msg}`;
-            logBox.appendChild(div);
-            logBox.scrollTop = logBox.scrollHeight;
-        }
-        function startFakeLogs() {
-            const phrases = ["Scanning ports...", "Optimizing neural net...", "Encrypting traffic...", "Ping check OK", "Updating hash table..."];
-            setInterval(() => {
-                if(Math.random() > 0.7) {
-                    addLog(phrases[Math.floor(Math.random() * phrases.length)]);
-                }
-            }, 3000);
-        }
-        
-        // AUDIO
-        function toggleAudio() {
-            audioEnabled = !audioEnabled;
-            document.getElementById('audio-toggle').innerText = `[ SOUND: ${audioEnabled ? 'ON' : 'OFF'} ]`;
-        }
-        function playSound(id) {
-            if(!audioEnabled) return;
-            const audio = document.getElementById('sfx-' + id);
-            if(audio) { audio.currentTime = 0; audio.play().catch(e=>{}); }
+        // --- UTILS ---
+        function log(msg, type="norm") {
+            const box = document.getElementById('term-log');
+            const color = type == "err" ? "var(--alert-red)" : (type=="success" ? "var(--matrix-green)" : (type=="warn" ? "var(--neon-purple)" : "#777"));
+            box.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
+            box.scrollTop = box.scrollHeight;
         }
 
-        // --- 4. CANVAS BACKGROUND (Neural Net) ---
-        function initCanvas() {
-            const canvas = document.getElementById('neural-net');
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-
-            let particles = [];
-            for(let i=0; i<60; i++) {
-                particles.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    vx: (Math.random() - 0.5) * 1,
-                    vy: (Math.random() - 0.5) * 1
-                });
-            }
-
-            function animate() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#00f3ff';
-                ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
-                
-                particles.forEach((p, i) => {
-                    p.x += p.vx; p.y += p.vy;
-                    if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
-                    if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
-                    
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Connect lines
-                    for(let j=i; j<particles.length; j++) {
-                        const dx = particles[j].x - p.x;
-                        const dy = particles[j].y - p.y;
-                        const dist = Math.sqrt(dx*dx + dy*dy);
-                        if(dist < 150) {
-                            ctx.beginPath();
-                            ctx.moveTo(p.x, p.y);
-                            ctx.lineTo(particles[j].x, particles[j].y);
-                            ctx.stroke();
-                        }
-                    }
-                });
-                requestAnimationFrame(animate);
-            }
-            animate();
+        function setStatus(text, color) {
+            const box = document.getElementById('status-box');
+            const txt = document.getElementById('status-text');
+            const dot = document.querySelector('.status-dot');
             
-            window.onresize = () => {
-                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            };
+            txt.innerText = text;
+            txt.style.color = color;
+            box.style.borderColor = color;
+            dot.style.background = color;
+            dot.style.boxShadow = `0 0 10px ${color}`;
         }
-        
-        // RADAR ANIMATION
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = `@keyframes radar { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }`;
-        document.head.appendChild(styleSheet);
+
+        function setLoading(isLoading, text) {
+            const btn = document.getElementById('btn-action');
+            if(isLoading) {
+                btn.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${text}`;
+                btn.classList.add('processing');
+                btn.disabled = true;
+            } else {
+                btn.classList.remove('processing');
+                // Lưu ý: Không tự enable lại button ở đây, vì cần chờ Captcha lại
+            }
+        }
+
+        function playSfx(id) {
+            const audio = document.getElementById('sfx-'+id);
+            if(audio) { audio.currentTime=0; audio.play().catch(()=>{}); }
+        }
     </script>
 </body>
 </html>

@@ -76,10 +76,10 @@ local CFG = {
         Font = Enum.Font.Code,          -- Hacking Font
         HeaderFont = Enum.Font.Code,    -- Hacking Font
         CodeFont = Enum.Font.Code,
-        GridTexture = "rbxassetid://6071575925",
+        GridTexture = "rbxassetid://37243876",
         NoiseTexture = "rbxassetid://16440628399",
         Icons = {
-            Key = "rbxassetid://13853153610",
+            Key = "rbxassetid://877797859",
             Close = "rbxassetid://3926305904",
             Info = "rbxassetid://3926305904"
         }
@@ -289,7 +289,7 @@ function VFX.ApplyCRT(parent)
     scanline.Name = "FX_CRT"
     scanline.BackgroundTransparency = 1
     scanline.Size = UDim2.new(1, 0, 1, 0)
-    scanline.Image = "rbxassetid://7019796593" -- Scanlines
+    scanline.Image = CFG.Assets.GridTexture    -- Scanlines
     scanline.ImageTransparency = 0.92
     scanline.ImageColor3 = Color3.fromRGB(0, 255, 0) -- Green tint
     scanline.ScaleType = Enum.ScaleType.Tile
