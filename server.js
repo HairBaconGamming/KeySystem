@@ -170,25 +170,38 @@ app.post('/api/start-process', async (req, res) => {
 });
 
 // 5. CALLBACK (Xử lý tăng bước)
-app.get('/api/callback', async (req, res) => {
+app.get('/api/callback', (req, res) => {
+    const { sid, t } = req.query;
+    // Chuyển hướng về trang chủ với tham số verify_token
+    // Bot truy cập vào đây sẽ chỉ nhận được lệnh redirect, không làm thay đổi DB
+    res.redirect(`/?id=${sid}&verify_token=${t}`);
+});
+
+app.post('/api/verify-step', async (req, res) => {
     try {
-        const { sid, t } = req.query;
-        const session = await SessionModel.findOne({ sessionId: sid });
+        const { sessionId, token } = req.body;
+        const session = await SessionModel.findOne({ sessionId });
 
-        if (!session) return res.send("<h1>SESSION EXPIRED</h1>");
-        if (session.secretToken !== t) return res.send("<h1>INVALID TOKEN</h1>");
+        if (!session) return res.json({ success: false, error: "Session Expired" });
+        
+        // Kiểm tra Token
+        if (session.secretToken !== token) {
+            return res.json({ success: false, error: "Invalid Token (Bypass Detected)" });
+        }
 
-        // Tăng bước lên 1
+        // Tăng bước
         session.currentStep += 1;
         
-        // QUAN TRỌNG: Đổi Token mới để bước sau không dùng lại link cũ được (Chống bypass link cũ)
+        // Đổi Token mới (Rotate)
         session.secretToken = crypto.randomBytes(16).toString('hex');
-        
         await session.save();
 
-        res.redirect(`/?id=${sid}#completed`);
-    } catch (e) { res.send("Error"); }
+        res.json({ success: true, message: "Step Verified" });
+    } catch (e) {
+        res.json({ success: false, error: "Internal Error" });
+    }
 });
+
 
 // 6. COMPLETE PROCESS (Chỉ cấp key khi đủ bước)
 app.post('/api/complete-process', async (req, res) => {
@@ -198,25 +211,22 @@ app.post('/api/complete-process', async (req, res) => {
 
         if (!session) return res.json({ success: false, error: "Session Lost" });
         
-        // KIỂM TRA ĐỦ BƯỚC CHƯA
+        // Check bước
         if (session.currentStep < TOTAL_STEPS) {
-            return res.json({ 
-                success: false, 
-                error: `Unfinished. Step ${session.currentStep}/${TOTAL_STEPS}`,
-                refresh: true // Báo hiệu cho frontend load lại profile để hiện bước tiếp theo
-            });
+            return res.json({ success: false, refresh: true }); 
         }
 
-        // Đủ bước -> Cấp Key
-        const randomPart = crypto.randomBytes(4).toString('hex').toUpperCase();
+        // Tạo Key
+        const randomPart = crypto.randomBytes(20).toString('hex').toUpperCase();
         const newKey = `HAIRKEY_${randomPart}`;
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-        const user = await UserModel.findOne({ hwid: session.hwid });
-        user.key = newKey;
-        user.keyExpires = expiresAt;
-        user.totalGenerations += 1;
-        await user.save();
+        // Update User
+        await UserModel.findOneAndUpdate(
+            { hwid: session.hwid },
+            { key: newKey, keyExpires: expiresAt, $inc: { totalGenerations: 1 } },
+            { upsert: true }
+        );
 
         await SessionModel.deleteOne({ sessionId });
 
