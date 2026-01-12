@@ -21,7 +21,6 @@
     local KeySystem = loadstring(game:HttpGet("https://raw.githubusercontent.com/HairBaconGamming/KeySystem/refs/heads/main/scripts/Integration.lua"))()
     
     KeySystem.init({
-        Domain = "https://hairkey.onrender.com",
         ApplicationName = "HUB NAME",
         OnKeyCorrect = function()
             loadstring(...)()
@@ -48,7 +47,7 @@ local Mouse = LocalPlayer:GetMouse()
 
 -- Configuration
 local CFG = {
-    Domain = "",
+    Domain = "https://hairkey.onrender.com",
     AppName = "TITAN HUB",
     FileName = "HairKey_Titan_Auth.bin",
     Theme = {
@@ -480,7 +479,6 @@ end
 
 function HairKey.init(config)
     -- Apply Config
-    CFG.Domain = config.Domain or "http://localhost:3000"
     CFG.AppName = config.ApplicationName or "TITAN HUB"
     local OnSuccess = config.OnKeyCorrect or function() print("SUCCESS") end
     
