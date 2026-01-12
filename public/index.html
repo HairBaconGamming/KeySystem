@@ -178,10 +178,10 @@
 </head>
 <body>
 
-    <audio id="sfx-boot" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_06953943ca.mp3?filename=reactos-boot-85864.mp3"></audio>
-    <audio id="sfx-hover" src="https://cdn.pixabay.com/download/audio/2025/09/05/audio_2b677bbcc4.mp3?filename=minimalist-button-hover-sound-effect-399749.mp3"></audio>
-    <audio id="sfx-click" src="https://cdn.pixabay.com/download/audio/2024/04/21/audio_1b8d3bcd3d.mp3?filename=click-buttons-ui-menu-sounds-effects-button-7-203601.mp3"></audio>
-    <audio id="sfx-success" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f65046c221.mp3?filename=success-83493.mp3"></audio>
+    <audio id="sfx-boot" src="https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3"></audio>
+    <audio id="sfx-hover" src="https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3"></audio>
+    <audio id="sfx-click" src="https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3"></audio>
+    <audio id="sfx-success" src="https://assets.mixkit.co/active_storage/sfx/2197/2197-preview.mp3"></audio>
 
     <canvas id="neural-net"></canvas>
     <div class="scanlines"></div>
@@ -222,7 +222,7 @@
                 <div id="turnstile-wrapper"></div>
 
                 <button id="btn-ads" class="cyber-btn" onclick="handleAds()" disabled>
-                    <i class="fas fa-lock"></i> INITIALIZE BYPASS
+                    <i class="fas fa-lock"></i> INITIALIZE SEQUENCE
                 </button>
             </div>
 
@@ -280,8 +280,9 @@
     </div>
 
     <script>
-        // CONFIG
-        const CLOUDFLARE_SITE_KEY = "0x4AAAAAABBLlduN6HavujOQ"; // <--- THAY KEY CỦA BẠN
+        // CONFIG - THAY KEY CỦA BẠN Ở ĐÂY
+        const CLOUDFLARE_SITE_KEY = "YOUR_CLOUDFLARE_SITE_KEY_HERE"; 
+        
         const API_PROFILE = '/api/profile';
         const API_START = '/api/start-process';
         const API_COMPLETE = '/api/complete-process';
@@ -309,9 +310,9 @@
                 div.className = 'boot-line';
                 div.innerText = `> ${bootText[i]}`;
                 bootScreen.appendChild(div);
-                await new Promise(r => setTimeout(r, 300)); // Delay
+                await new Promise(r => setTimeout(r, 200)); // Delay
             }
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 400));
             bootScreen.style.display = 'none';
             document.getElementById('main-interface').style.opacity = 1;
             
@@ -341,29 +342,29 @@
 
         // --- 2. API LOGIC ---
         async function loadProfile() {
-        addLog("FETCHING USER PROFILE...", "warn");
-        try {
-            const res = await fetch(API_PROFILE, {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
-            });
-            const data = await res.json();
+            addLog("FETCHING USER PROFILE...", "warn");
+            try {
+                const res = await fetch(API_PROFILE, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
+                });
+                const data = await res.json();
 
-            if (data.success) {
-                addLog("USER IDENTIFIED: " + data.hwidShort);
-                document.getElementById('user-display').innerText = data.hwidShort;
-                document.getElementById('stats-gen').innerText = data.totalGenerations;
-                
-                if (data.keyStatus === "ACTIVE") {
-                    showActive(data.currentKey, data.timeLeft);
+                if (data.success) {
+                    addLog("USER IDENTIFIED: " + data.hwidShort);
+                    document.getElementById('user-display').innerText = data.hwidShort;
+                    document.getElementById('stats-gen').innerText = data.totalGenerations;
+                    
+                    if (data.keyStatus === "ACTIVE") {
+                        showActive(data.currentKey, data.timeLeft);
+                    } else {
+                        // Hỗ trợ hiển thị Step/Checkpoint
+                        showExpired(data.currentStep || 0, data.totalSteps || 1);
+                    }
                 } else {
-                    // Truyền thêm step info vào hàm showExpired
-                    showExpired(data.currentStep, data.totalSteps);
+                    addLog("ERROR: " + data.error, "err");
                 }
-            } else {
-                addLog("ERROR: " + data.error, "err");
-            }
-        } catch (e) { console.error(e); }
-    }
+            } catch (e) { console.error(e); }
+        }
 
         function showActive(key, seconds) {
             document.getElementById('view-active').style.display = 'block';
@@ -393,36 +394,33 @@
             }, 1000);
         }
 
-    function showExpired(currentStep = 0, totalSteps = 2) {
-        document.getElementById('view-active').style.display = 'none';
-        document.getElementById('view-expired').style.display = 'block';
-        
-        // Tính bước hiện tại (nếu currentStep=0 -> là đang ở bước 1)
-        const displayStep = currentStep + 1;
-        addLog(`SECURITY CHECK: STEP ${displayStep}/${totalSteps}`, "err");
-        
-        // Render Turnstile
-        document.getElementById('turnstile-wrapper').innerHTML = ""; // Clear cũ để render lại nếu cần
-        turnstile.render('#turnstile-wrapper', {
-            sitekey: CLOUDFLARE_SITE_KEY,
-            theme: 'dark',
-            callback: function(token) {
-                cfToken = token;
-                const btn = document.getElementById('btn-ads');
-                btn.disabled = false;
-                btn.style.boxShadow = "0 0 20px var(--success)";
-                btn.style.borderColor = "var(--success)";
-                btn.style.color = "var(--success)";
-                
-                // Đổi chữ trên nút
-                btn.innerHTML = `<i class="fas fa-forward"></i> CHECKPOINT ${displayStep}/${totalSteps}`;
-                
-                playSound('hover');
-                addLog("VERIFIED. READY FOR NEXT STEP.");
-            }
-        });
-    }
-
+        function showExpired(currentStep, totalSteps) {
+            document.getElementById('view-active').style.display = 'none';
+            document.getElementById('view-expired').style.display = 'block';
+            
+            const displayStep = currentStep + 1;
+            const stepText = totalSteps > 1 ? `CHECKPOINT ${displayStep}/${totalSteps}` : "GENERATE LINK";
+            
+            addLog(`SECURITY CHECK: ${stepText}`, "err");
+            
+            // Reset & Render Turnstile
+            document.getElementById('turnstile-wrapper').innerHTML = "";
+            turnstile.render('#turnstile-wrapper', {
+                sitekey: CLOUDFLARE_SITE_KEY,
+                theme: 'dark',
+                callback: function(token) {
+                    cfToken = token;
+                    const btn = document.getElementById('btn-ads');
+                    btn.disabled = false;
+                    btn.style.boxShadow = "0 0 20px var(--success)";
+                    btn.style.borderColor = "var(--success)";
+                    btn.style.color = "var(--success)";
+                    btn.innerHTML = `<i class="fas fa-forward"></i> ${stepText}`;
+                    playSound('hover');
+                    addLog("HUMAN VERIFIED via CLOUDFLARE");
+                }
+            });
+        }
 
         async function handleAds() {
             if(!cfToken) return;
@@ -448,29 +446,31 @@
         }
 
         async function completeProcess() {
-        addLog("CALLBACK RECEIVED. VERIFYING...", "warn");
-        const res = await fetch(API_COMPLETE, {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
-        });
-        const data = await res.json();
-        
-        if(data.success) {
-            // Đã xong hoàn toàn -> Hiện Key
-            window.location.hash = "";
-            await loadProfile();
-        } else {
-            if (data.refresh) {
-                // Chưa xong hết (Mới xong bước 1) -> Load lại để hiện bước 2
-                addLog("STEP COMPLETED. LOADING NEXT...", "success");
+            addLog("CALLBACK RECEIVED. VERIFYING...", "warn");
+            const res = await fetch(API_COMPLETE, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                // Done - Show Key
                 window.location.hash = "";
                 await loadProfile();
             } else {
-                addLog("VERIFY FAILED. RETRYING...", "err");
-                window.location.hash = "";
-                await loadProfile();
+                if(data.refresh) {
+                    // Step completed -> Next step
+                    addLog("STEP COMPLETE. LOADING NEXT...", "success");
+                    playSound('success');
+                    window.location.hash = "";
+                    await loadProfile();
+                } else {
+                    // Error / Expired
+                    addLog("VERIFY FAILED. RETRYING...", "err");
+                    window.location.hash = "";
+                    await loadProfile();
+                }
             }
         }
-    }
 
         function copyKey() {
             playSound('click');
@@ -569,11 +569,9 @@
             };
         }
         
-        // RADAR ANIMATION KEYFRAMES
+        // RADAR ANIMATION
         const styleSheet = document.createElement("style");
-        styleSheet.innerText = `
-            @keyframes radar { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-        `;
+        styleSheet.innerText = `@keyframes radar { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }`;
         document.head.appendChild(styleSheet);
     </script>
 </body>
