@@ -180,8 +180,8 @@ function Network.Request(url, method, body)
                 Url = url,
                 Method = method or "GET",
                 Headers = {
-                    ["Content-Type"] = "application/json",
-                    ["User-Agent"] = "HairKey-Titan/" .. CFG.Version
+                    ["Content-Type"] = "application/json"
+                    -- User-Agent removed to prevent "Header User-Agent is not allowed" error
                 },
                 Body = body and HttpService:JSONEncode(body) or nil
             })
