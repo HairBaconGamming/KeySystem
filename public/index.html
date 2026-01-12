@@ -179,7 +179,7 @@
 
     <script>
         // === CONFIG ===
-        const CLOUDFLARE_SITE_KEY = "0x4AAAAAABBLlduN6HavujOQ"; // <--- THAY SITE KEY CỦA BẠN
+        const CLOUDFLARE_SITE_KEY = "YOUR_CLOUDFLARE_SITE_KEY_HERE"; // <--- THAY SITE KEY CỦA BẠN
         
         // API ENDPOINTS
         const API = {
@@ -199,7 +199,7 @@
             sessionId = urlParams.get('id');
             const verifyToken = urlParams.get('verify_token');
 
-            // 1. NẾU CÓ VERIFY TOKEN -> GỌI API VERIFY
+            // 1. VERIFY TOKEN (Fix lỗi quay lại checkpoint 1)
             if (verifyToken) {
                 log("DETECTED RETURN SIGNAL. VERIFYING...", "warn");
                 setStatus("VERIFYING STEP...", "var(--neon-purple)");
@@ -225,7 +225,7 @@
                     log("CONNECTION ERROR DURING VERIFY", "err"); 
                 }
                 
-                setLoading(false); // Reset nút bấm
+                setLoading(false); 
             }
 
             // 2. LOAD PROFILE
@@ -250,11 +250,16 @@
                     if (data.keyStatus === "ACTIVE") {
                         showSuccess(data.currentKey);
                     } else {
-                        // Hiển thị Checkpoint hiện tại
-                        setupCheckpoint(data.currentStep, data.totalSteps);
+                        // FIX BUG 3/2: Kiểm tra nếu đã đủ bước thì lấy Key luôn
+                        if (data.currentStep >= data.totalSteps) {
+                            log("ALL CHECKPOINTS CLEARED. GENERATING KEY...", "success");
+                            await checkCompletion();
+                        } else {
+                            // Nếu chưa đủ bước, hiện checkpoint tiếp theo
+                            setupCheckpoint(data.currentStep, data.totalSteps);
+                        }
                     }
                 } else {
-                    // Nếu lỗi (Session Lost) -> Kiểm tra xem có phải vừa xong bước cuối không
                     await checkCompletion(); 
                 }
             } catch (e) { log("PROFILE LOAD ERROR", "err"); }
@@ -268,7 +273,7 @@
             setStatus(total > 1 ? `CHECKPOINT ${displayStep} / ${total}` : "SECURITY CHECK", "var(--neon-cyan)");
             log(`AWAITING COMPLETION OF CHECKPOINT ${displayStep}...`);
 
-            // Reset nút bấm về trạng thái chờ Turnstile
+            // Reset nút bấm
             btn.innerHTML = `<i class="fas fa-lock"></i> WAIT FOR CAPTCHA`;
             btn.disabled = true;
             btn.classList.remove('processing');
@@ -280,7 +285,6 @@
                 theme: 'dark',
                 callback: function(token) {
                     cfToken = token;
-                    // Mở khóa nút bấm khi xong Captcha
                     btn.disabled = false;
                     btn.innerHTML = `<i class="fas fa-bolt"></i> CONTINUE`;
                     btn.style.boxShadow = "0 0 20px var(--neon-cyan)";
@@ -304,7 +308,6 @@
                 
                 if(data.success) {
                     log("LINK GENERATED. REDIRECTING...");
-                    // Chuyển hướng
                     window.location.href = data.link; 
                 } else {
                     log("ERROR: " + data.error, "err");
@@ -318,7 +321,6 @@
         }
 
         async function checkCompletion() {
-            // Dành cho trường hợp session vừa bị xóa do hoàn tất -> Thử lấy key lần cuối
             const res = await fetch(API.COMPLETE, {
                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sessionId })
             });
@@ -330,7 +332,7 @@
                 if (data.refresh) {
                     window.location.reload();
                 } else {
-                    log("SESSION EXPIRED. PLEASE GET NEW LINK.", "err");
+                    log("SESSION EXPIRED OR INVALID.", "err");
                     setStatus("SESSION EXPIRED", "var(--alert-red)");
                 }
             }
@@ -382,7 +384,6 @@
                 btn.disabled = true;
             } else {
                 btn.classList.remove('processing');
-                // Lưu ý: Không tự enable lại button ở đây, vì cần chờ Captcha lại
             }
         }
 
